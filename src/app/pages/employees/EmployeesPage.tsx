@@ -27,7 +27,7 @@ export default function EmployeesPage() {
     console.error('Error fetching employees:', error);
 
     return (
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto">
         <div className="text-center">
           <p className="text-destructive">Error: {error}</p>
           <Button onClick={refetch} className="mt-4">
@@ -40,8 +40,8 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="container mx-auto py-5">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             {EmployeePageTexts.employees}

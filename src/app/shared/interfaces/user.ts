@@ -8,4 +8,5 @@ export type User = {
   email: string;
   phone: string;
   companyId: string;
+  status?: 'active' | 'inactive' | 'suspended';
 };

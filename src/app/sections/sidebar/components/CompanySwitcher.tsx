@@ -13,9 +13,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import type { Company } from '@/app/shared/interfaces/Company';
 import { useCompanySwitcher } from '../hooks/useCompanySwitcher';
 import { SidebarHeaderTexts } from '@/constants/localize';
+import type { Company } from '@/app/shared/interfaces/Company';
 
 interface CompanyProps {
   companies: Company[];

@@ -70,6 +70,7 @@ export const DataTableColumnsTexts = {
   copyId: 'Copiar ID de usuario',
   viewDetails: 'Ver detalles',
   editUser: 'Editar usuario',
+  hiredOn: 'Contratado: ',
 };
 
 export const SearchInputTexts = {
@@ -96,4 +97,41 @@ export const EmployeePageTexts = {
   searchPlaceholder: 'Buscar empleados por nombre o email...',
   noEmployeesFound: 'No se encontraron empleados.',
   loadingEmployees: 'Cargando empleados...',
+};
+
+export const EmployeeDetailsTexts = {
+  hiredOn: 'Contratado',
+  noPhone: 'No disponible',
+  edit: 'Editar',
+  download: 'Descargar',
+  personalInfo: 'Información Personal',
+  salary: 'Salario',
+  memos: 'Memorandums',
+  permissions: 'Permisos y Faltas',
+  vacations: 'Vacaciones',
+  subsidies: 'Subsidios',
+  dismissal: 'Desvinculación',
+};
+
+export const PersonalInfoTexts = {
+  title: 'Hoja de Vida e Información Personal',
+  resume: 'Hoja de Vida',
+  lastUpdated: 'Última actualización',
+  download: 'Descargar CV',
+  upload: 'Reemplazar CV',
+  delete: 'Eliminar CV',
+  details: 'Detalles de Contacto',
+  emergencyContact: 'Contacto de Emergencia',
+  address: 'Dirección',
+  birthDate: 'Fecha de Nacimiento',
+  generateContract: 'Generar Contrato',
+  uploadContract: 'Subir Contrato',
+};
+
+export const MemorandumTexts = {
+  title: 'Memorandums',
+  upload: 'Subir Memorandum',
+  actualMonth: 'Mes Actual',
+  all: 'Todos los Memorandums',
+  noMemos: 'No hay memorandums para mostrar.',
 };

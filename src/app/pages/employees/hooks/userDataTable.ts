@@ -5,7 +5,8 @@ import type {
   TableFilters,
 } from '@/app/shared/interfaces/table';
 import { ErrorTexts } from '@/constants/localize';
-import { fetchUsersMock } from './mockUser';
+import { fetchUsersWithPagination } from '../../../shared/data/mockUser';
+import type { User } from '@/app/shared/interfaces/user';
 
 interface UseDataTableReturn<T> {
   data: T[];
@@ -57,22 +58,22 @@ export function useDataTable<T>({
 
     try {
       if (endpoint.includes('/users')) {
-        const result = await fetchUsersMock(
+        const result: PaginationResponse<User> = await fetchUsersWithPagination(
           pagination.pageIndex + 1,
           pagination.pageSize,
-          filters
+          filters.search || ''
         );
         setData(result.data as T[]);
         setPageCount(result.totalPages);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setError(err instanceof Error ? err.message : ErrorTexts.genericError);
       setData([]);
       setPageCount(0);
     } finally {
       setLoading(false);
     }
-  }, [endpoint, pagination, filters, searchValue]);
+  }, [endpoint, pagination, filters]);
 
   useEffect(() => {
     fetchData();

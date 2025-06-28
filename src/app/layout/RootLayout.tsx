@@ -17,7 +17,7 @@ export default function RootLayout() {
               'peer-data-[state=collapsed]:max-w-[calc(100vw-var(--sidebar-width-icon)-1rem)]',
               'peer-data-[state=expanded]:max-w-[calc(100vw-var(--sidebar-width)-1rem)]',
               'transition-[width] duration-200 ease-linear',
-              'px-8 py-0'
+              'p-8'
             )}
           >
             <Outlet />

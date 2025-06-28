@@ -1,32 +1,30 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import type { User } from '@/app/shared/interfaces/user';
 import { DataTableColumnsTexts } from '@/constants/localize';
 import { formatDate, formatDateHireDate } from '@/lib/formatters';
+import { Actions } from './Actions';
 
 export const columns: ColumnDef<User>[] = [
   {
     id: 'fullName',
-    header: DataTableColumnsTexts.employee,
+    header: () => (
+      <span className="pl-4">{DataTableColumnsTexts.employee}</span>
+    ),
     cell: ({ row }) => {
       const { firstName, lastName, hireDate } = row.original;
       const formattedDate = formatDate(hireDate, 'es-ES');
 
       return (
-        <section>
+        <section className="pl-4">
           <span className="font-medium">
             {firstName} {lastName}
           </span>
-          <div className="text-sm text-muted-foreground">{formattedDate}</div>
+          <span className="block">
+            {DataTableColumnsTexts.hiredOn}
+            <span className="text-sm text-muted-foreground">
+              {formattedDate}
+            </span>
+          </span>
         </section>
       );
     },
@@ -86,33 +84,7 @@ export const columns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const user = row.original;
 
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">{DataTableColumnsTexts.openMenu}</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>
-              {DataTableColumnsTexts.actions}
-            </DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(user.id)}
-            >
-              {DataTableColumnsTexts.copyId}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              {DataTableColumnsTexts.viewDetails}
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              {DataTableColumnsTexts.editUser}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+      return <Actions user={user} />;
     },
   },
 ];

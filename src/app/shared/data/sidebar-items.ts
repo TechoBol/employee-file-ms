@@ -20,7 +20,7 @@ export const sidebarGroupItems: SidebarGroupItem[] = [
     url: '/employees',
     isActive: true,
     items: [
-      { title: SidebarItemsTexts.employees.list, url: '/employees/list' },
+      { title: SidebarItemsTexts.employees.list, url: '/employees' },
       { title: SidebarItemsTexts.employees.memos, url: '/employees/memos' },
       {
         title: SidebarItemsTexts.employees.permissions,
