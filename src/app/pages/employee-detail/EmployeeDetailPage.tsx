@@ -9,6 +9,7 @@ import { EmployeeDetailsTexts } from '@/constants/localize';
 import { Card, CardContent } from '@/components/ui/card';
 import { NotPageYet } from './components/NotPageYet';
 import { Memorandum } from './components/Memorandum';
+import { SalarySummary } from './components/SalarySummary';
 
 export function EmployeeDetailPage() {
   const { employeeId } = useParams();
@@ -24,8 +25,21 @@ export function EmployeeDetailPage() {
     {
       value: 'salary',
       label: EmployeeDetailsTexts.salary,
-      content: <NotPageYet />,
-      disabled: true,
+      content: (
+        <SalarySummary
+          salarioBase={25000}
+          bonoAntiguedad={4000}
+          bonosAdicionales={[
+            { nombre: 'Bono de desempeño', monto: 2000 },
+            { nombre: 'Bono de puntualidad', monto: 1500 },
+          ]}
+          deducciones={[
+            { nombre: 'ISR', monto: 3000 },
+            { nombre: 'IMSS', monto: 1200 },
+          ]}
+        />
+      ),
+      disabled: false,
     },
     {
       value: 'memos',
@@ -106,7 +120,9 @@ export function EmployeeDetailPage() {
               key={value}
               value={value}
               className={`flex-1 ${
-                disabled ? 'opacity-50 cursor-not-allowed' : ''
+                disabled
+                  ? 'opacity-50 cursor-not-allowed pointer-events-none'
+                  : ''
               }`}
             >
               {label}

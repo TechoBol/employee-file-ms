@@ -10,37 +10,79 @@ import {
   FileText,
   FileUp,
   MapPin,
+  NotebookText,
   Phone,
   Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { PersonalInfoForm } from './forms/PersonalInfoForm';
+
+type DialogContentType = 'EDIT_PERSONAL_INFO' | 'UPLOAD_CONTRACT' | null;
 
 // TODO: Receive user data as props and display resume information
 export function PersonalInfo() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogContent, setDialogContent] = useState<DialogContentType>(null);
+
+  const handleOpen = (type: DialogContentType) => {
+    setDialogContent(type);
+    setDialogOpen(true);
+  };
+
+  const renderDialogContent = useMemo(() => {
+    switch (dialogContent) {
+      case 'EDIT_PERSONAL_INFO':
+        return <PersonalInfoForm />;
+      case 'UPLOAD_CONTRACT':
+        return (
+          <PdfUploader
+            onFileAccepted={(file) => {
+              console.log('File accepted:', file);
+            }}
+          />
+        );
+      default:
+        return null;
+    }
+  }, [dialogContent]);
 
   return (
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
-        title={'Subir Documento'}
-        description={'Sube el documento de contrato del empleado'}
-        open={dialogOpen} // This dialog is not used in this component, but can be used for future enhancements
+        title={
+          dialogContent === 'EDIT_PERSONAL_INFO'
+            ? 'Editar información personal'
+            : 'Subir Documento'
+        }
+        description={
+          dialogContent === 'EDIT_PERSONAL_INFO'
+            ? 'Modifica la información del empleado'
+            : 'Sube el documento de contrato del empleado'
+        }
+        open={dialogOpen}
         onOpenChange={setDialogOpen}
       >
-        <PdfUploader
-          onFileAccepted={(file) => {
-            console.log('File accepted:', file);
-          }}
-        />
+        {renderDialogContent}
       </ReusableDialog>
       <div className="flex justify-between">
         <span className="text-xl font-bold">{PersonalInfoTexts.title}</span>
         <section className="flex gap-4">
+          <Button
+            className="w-60"
+            variant="outline"
+            onClick={() => handleOpen('EDIT_PERSONAL_INFO')}
+          >
+            <NotebookText />
+            <span>{PersonalInfoTexts.editPersonalInfo}</span>
+          </Button>
           <Button className="w-40" disabled>
             <CircuitBoard />
             <span>{PersonalInfoTexts.generateContract}</span>
           </Button>
-          <Button className="w-40" onClick={() => setDialogOpen(true)}>
+          <Button
+            className="w-40"
+            onClick={() => handleOpen('UPLOAD_CONTRACT')}
+          >
             <FileUp />
             <span>{PersonalInfoTexts.uploadContract}</span>
           </Button>

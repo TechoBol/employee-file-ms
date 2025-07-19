@@ -129,8 +129,17 @@ export const PersonalInfoTexts = {
   emergencyContact: 'Contacto de Emergencia',
   address: 'Dirección',
   birthDate: 'Fecha de Nacimiento',
+  editPersonalInfo: 'Editar Información Personal',
   generateContract: 'Generar Contrato',
   uploadContract: 'Subir Contrato',
+};
+
+export const SalarySummaryTexts = {
+  title: 'Salario del Empleado',
+  baseSalary: 'Salario Base',
+  seniorityBonus: 'Bono por Antigüedad',
+  addBonus: 'Añadir Bono Adicional',
+  addDeduction: 'Añadir Deducción',
 };
 
 export const MemorandumTexts = {
