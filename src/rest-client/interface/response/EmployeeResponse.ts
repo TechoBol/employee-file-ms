@@ -24,3 +24,13 @@ export interface EmergencyContactResponse {
   phone: string;
   address: string;
 }
+
+export interface EmployeeProjectionResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  ci: string;
+  email: string;
+  positionId: string;
+  branchId: string;
+}

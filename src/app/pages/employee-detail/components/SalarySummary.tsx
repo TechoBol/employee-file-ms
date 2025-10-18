@@ -8,7 +8,7 @@ import type {
   PayrollDeductionResponse,
 } from '@/rest-client/interface/response/PayrollResponse';
 import { BaseSalaryService } from '@/rest-client/services/BaseSalaryService';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, SquarePen } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { BaseSalaryForm } from './forms/BaseSalaryForm';
@@ -218,7 +218,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
             onClick={() => handleOpen('BASE_SALARY')}
             disabled={!baseSalary}
           >
-            <Plus className="h-4 w-4" />
+            <SquarePen className="h-4 w-4" />
             <span>Actualizar Salario Base</span>
           </Button>
         </div>

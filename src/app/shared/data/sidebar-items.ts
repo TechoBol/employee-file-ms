@@ -33,16 +33,16 @@ export const sidebarGroupItems: SidebarGroupItem[] = [
         url: '/employees',
         disabled: false,
       },
-      {
-        title: SidebarItemsTexts.employees.memos,
-        url: '/employees/memos',
-        disabled: true,
-      },
-      {
-        title: SidebarItemsTexts.employees.permissions,
-        url: '/employees/permissions',
-        disabled: true,
-      },
+      // {
+      //   title: SidebarItemsTexts.employees.memos,
+      //   url: '/employees/memos',
+      //   disabled: true,
+      // },
+      // {
+      //   title: SidebarItemsTexts.employees.permissions,
+      //   url: '/employees/permissions',
+      //   disabled: true,
+      // },
     ],
     disabled: false,
   },
@@ -51,7 +51,7 @@ export const sidebarGroupItems: SidebarGroupItem[] = [
     icon: DollarSign,
     url: '/salary',
     items: [],
-    disabled: true,
+    disabled: false,
   },
   {
     title: SidebarItemsTexts.branch.title,

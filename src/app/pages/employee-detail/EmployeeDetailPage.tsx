@@ -6,10 +6,12 @@ import { PersonalInfo } from './components/PersonalInfo';
 import { EmployeeDetailsTexts } from '@/constants/localize';
 import { Card, CardContent } from '@/components/ui/card';
 import { NotPageYet } from './components/NotPageYet';
-import { Memorandum } from './components/Memorandum';
 import { SalarySummary } from './components/SalarySummary';
 import { AbsencePermissionSection } from './components/AbsencePermissionSection';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
+import { AdvanceSection } from './components/AdvanceSection';
+import { VacationSection } from './components/forms/VacationSection';
+import { MemorandumSection } from './components/MemorandumSection';
 
 const employeeService = new (
   await import('@/rest-client/services/EmployeeService')
@@ -39,8 +41,8 @@ export function EmployeeDetailPage() {
     {
       value: 'memos',
       label: EmployeeDetailsTexts.memos,
-      content: <Memorandum />,
-      disabled: true,
+      content: <MemorandumSection employeeId={employeeId!} />,
+      disabled: false,
     },
     {
       value: 'permissions',
@@ -51,14 +53,14 @@ export function EmployeeDetailPage() {
     {
       value: 'vacations',
       label: EmployeeDetailsTexts.vacations,
-      content: <NotPageYet />,
-      disabled: true,
+      content: <VacationSection employeeId={employeeId!} />,
+      disabled: false,
     },
     {
-      value: 'subsidies',
-      label: EmployeeDetailsTexts.subsidies,
-      content: <NotPageYet />,
-      disabled: true,
+      value: 'advances',
+      label: EmployeeDetailsTexts.advances,
+      content: <AdvanceSection employeeId={employeeId!} />,
+      disabled: false,
     },
     {
       value: 'dismissal',

@@ -9,7 +9,6 @@ import {
   Download,
   FileUp,
   Trash2,
-  NotebookText,
   CircuitBoard,
   UserPlus,
   Edit,
@@ -165,14 +164,14 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
       <div className="flex justify-between">
         <span className="text-xl font-bold">{PersonalInfoTexts.title}</span>
         <section className="flex gap-4">
-          <Button
+          {/* <Button
             className="w-60"
             variant="outline"
             onClick={() => handleOpen('EDIT_PERSONAL_INFO')}
           >
             <NotebookText />
             <span>{PersonalInfoTexts.editPersonalInfo}</span>
-          </Button>
+          </Button> */}
           <Button className="w-40" disabled>
             <CircuitBoard />
             <span>{PersonalInfoTexts.generateContract}</span>
@@ -221,28 +220,24 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
       </section>
 
       <section className="flex gap-8">
-        {/* Contacto de emergencia */}
         <section className="flex flex-col gap-4 w-full">
-          <span className="text-lg font-semibold">
+          <span className="text-2xl font-semibold">
             {PersonalInfoTexts.details}
           </span>
           <Separator decorative className="p-[1px]" />
           <section className="flex gap-4 items-center">
             <MapPin className="text-gray-400" />
             <p className="flex flex-col">
-              <span className="text-md font-medium">
-                {PersonalInfoTexts.address}
-              </span>
+              <span className="text-md font-medium">Dirección</span>
+              <span className="text-md font-light">{employee.address}</span>
             </p>
           </section>
           <section className="flex gap-4 items-center">
             <Calendar className="text-gray-400" />
             <p className="flex flex-col">
-              <span className="text-md font-medium">
-                {PersonalInfoTexts.birthDate}
-              </span>
-              <span className="font-light">
-              </span>
+              <span className="text-md font-medium">Fecha de Nacimiento</span>
+              <span className="text-md font-light">{employee.birthDate}</span>
+              <span className="font-light"></span>
             </p>
           </section>
         </section>
@@ -250,7 +245,7 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
         {/* Contacto de emergencia */}
         <section className="flex flex-col gap-4 w-full">
           <div className="flex justify-between items-center">
-            <span className="text-lg font-semibold">
+            <span className="text-2xl font-semibold">
               Contacto de emergencia
             </span>
             <Button
@@ -278,12 +273,13 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
               <section className="flex gap-4 items-center">
                 <Phone className="text-gray-400" />
                 <p className="flex flex-col">
-                  <span className="text-md font-medium">
-                    {employee.emergencyContact.fullName}
+                  <span>
+                    <span className="text-md font-medium">
+                      {`${employee.emergencyContact.fullName} (${employee.emergencyContact.relation})`}
+                    </span>
+                    <span className="font-light text-sm"></span>
                   </span>
-                  <span className="font-light text-sm">
-                    {employee.emergencyContact.relation}
-                  </span>
+
                   <span className="font-light">
                     {employee.emergencyContact.phone}
                   </span>
