@@ -11,7 +11,7 @@ export const SidebarItemsTexts = {
     title: 'Departamentos',
   },
   salary: {
-    title: 'Salarios',
+    title: 'Planillas',
   },
   positions: {
     title: 'Posiciones',

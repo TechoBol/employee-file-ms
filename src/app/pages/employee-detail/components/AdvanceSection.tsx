@@ -139,7 +139,7 @@ export function AdvanceSection({
   };
 
   const totalAmount = currentAdvances.reduce(
-    (sum, advance) => sum + advance.totalAmount,
+    (sum, advance) => sum + advance.amount,
     0
   );
 
@@ -223,9 +223,7 @@ export function AdvanceSection({
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary">
-                        {advance.percentageAmount * 100}%
-                      </Badge>
+                      <Badge variant="secondary">{advance.amount} Bs</Badge>
                     </div>
                     <p className="text-sm font-medium">
                       {formatDate(advance.advanceDate)}
@@ -235,7 +233,7 @@ export function AdvanceSection({
 
                 <div className="text-right flex-shrink-0 ml-2">
                   <p className="text-sm font-semibold text-green-600">
-                    {formatCurrency(advance.totalAmount)}
+                    {formatCurrency(advance.amount)}
                   </p>
                 </div>
               </div>
@@ -312,7 +310,7 @@ export function AdvanceSection({
 
                           <div className="text-right flex-shrink-0 ml-2">
                             <p className="text-sm font-semibold text-green-600">
-                              {formatCurrency(advance.totalAmount)}
+                              {formatCurrency(advance.amount)}
                             </p>
                           </div>
                         </div>

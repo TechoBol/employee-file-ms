@@ -1,7 +1,7 @@
 export interface AdvanceResponse {
   id: string;
   employeeId: string;
-  totalAmount: number;
+  amount: number;
   percentageAmount: number;
   advanceDate: string;
 }

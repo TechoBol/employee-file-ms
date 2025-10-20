@@ -118,6 +118,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
     const labels: Record<string, string> = {
       PERMISSION: 'Permisos',
       ABSENCE: 'Faltas',
+      ADVANCE: 'Anticipos',
     };
     return labels[type] || type;
   };

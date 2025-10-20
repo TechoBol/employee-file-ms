@@ -7,6 +7,7 @@ export interface PayrollResponse {
   seniorityYears: number;
   seniorityIncreasePercentage: number;
   seniorityBonus: number;
+  grossAmount: number;
   deductionAfpPercentage: number;
   deductionAfp: number;
   deductions: PayrollDeductionResponse[];

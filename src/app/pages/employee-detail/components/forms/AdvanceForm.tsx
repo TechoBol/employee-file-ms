@@ -28,10 +28,7 @@ import type { AdvanceResponse } from '@/rest-client/interface/response/AdvanceRe
 const advanceService = new AdvanceService();
 
 const formSchema = z.object({
-  percentageAmount: z
-    .number()
-    .min(1, 'El porcentaje debe ser al menos 1%')
-    .max(20, 'El porcentaje no puede ser mayor a 20%'),
+  amount: z.number().min(1, 'El monto debe ser al menos 1'),
   advanceDate: z.date({
     message: 'La fecha es obligatoria',
   }),
@@ -57,7 +54,7 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
   const form = useForm<AdvanceFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      percentageAmount: undefined,
+      amount: undefined,
       advanceDate: new Date(),
     },
   });
@@ -66,19 +63,18 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
     try {
       setLoading(true);
 
-      // Convertir el porcentaje de 20% a 0.20 (20/100)
-      const percentageDecimal = values.percentageAmount / 100;
+      const amountDecimal = values.amount;
 
       const newAdvance = await advanceService.createAdvance({
         employeeId,
-        percentageAmount: percentageDecimal,
+        amount: amountDecimal,
         advanceDate: format(values.advanceDate, 'yyyy-MM-dd'),
       });
 
       toast.success('Adelanto registrado', {
         description: `Se registró correctamente. Monto: ${formatCurrency(
-          newAdvance.totalAmount
-        )} (${values.percentageAmount}%)`,
+          newAdvance.amount
+        )} (${values.amount})`,
       });
 
       if (onSave) {
@@ -86,7 +82,7 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
       }
 
       form.reset({
-        percentageAmount: undefined,
+        amount: undefined,
         advanceDate: new Date(),
       });
     } catch (error) {
@@ -107,14 +103,14 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
       >
         <FormField
           control={form.control}
-          name="percentageAmount"
+          name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Porcentaje del salario (%)</FormLabel>
+              <FormLabel>Monto del adelanto</FormLabel>
               <FormControl>
                 <Input
                   type="number"
-                  placeholder="Ej: 10 (Máx. 20%)"
+                  placeholder="Ej: 1000 (Bs)"
                   step="1"
                   {...field}
                   onChange={(e) => {

@@ -75,9 +75,8 @@ export function VacationSection({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingVacation, setEditingVacation] = useState<VacationResponse | null>(
-    null
-  );
+  const [editingVacation, setEditingVacation] =
+    useState<VacationResponse | null>(null);
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlyVacations, setMonthlyVacations] = useState<
     Map<number, VacationResponse[] | null>
@@ -92,7 +91,9 @@ export function VacationSection({
     try {
       setLoading(true);
       setError(null);
-      const vacations = await vacationService.getVacationsByEmployee(employeeId);
+      const vacations = await vacationService.getVacationsByEmployee(
+        employeeId
+      );
       setCurrentVacations(vacations);
     } catch (err) {
       console.error('Error fetching vacations:', err);
@@ -116,7 +117,7 @@ export function VacationSection({
       setCurrentVacations([savedVacation, ...currentVacations]);
     }
     setDialogOpen(false);
-    
+
     // Refrescar la lista completa
     fetchCurrentVacations();
   };
@@ -153,9 +154,14 @@ export function VacationSection({
             startDate,
             endDate
           );
-          setMonthlyVacations((prev) => new Map(prev).set(monthsAgo, vacations));
+          setMonthlyVacations((prev) =>
+            new Map(prev).set(monthsAgo, vacations)
+          );
         } catch (err) {
-          console.error(`Error fetching vacations for month ${monthsAgo}:`, err);
+          console.error(
+            `Error fetching vacations for month ${monthsAgo}:`,
+            err
+          );
           setMonthlyVacations((prev) => new Map(prev).set(monthsAgo, []));
         } finally {
           setLoadingMonths((prev) => {
@@ -169,11 +175,15 @@ export function VacationSection({
   };
 
   const totalDays = currentVacations.reduce(
-    (sum, vacation) => sum + calculateDays(vacation.startDate, vacation.endDate),
+    (sum, vacation) =>
+      sum + calculateDays(vacation.startDate, vacation.endDate),
     0
   );
 
-  const renderVacationCard = (vacation: VacationResponse, showEdit: boolean = true) => (
+  const renderVacationCard = (
+    vacation: VacationResponse,
+    showEdit: boolean = true
+  ) => (
     <div
       key={vacation.id}
       className="flex items-center justify-between p-3 border rounded-lg"
@@ -183,9 +193,7 @@ export function VacationSection({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary">
-              {calculateDays(vacation.startDate, vacation.endDate)} días
-            </Badge>
+            <Badge variant="secondary">{vacation.daysTaken} días</Badge>
           </div>
           <p className="text-sm font-medium">
             {formatDate(vacation.startDate)} - {formatDate(vacation.endDate)}
@@ -284,11 +292,15 @@ export function VacationSection({
 
       {currentVacations.length > 0 ? (
         <section className="flex flex-col gap-2 rounded-xl border p-4">
-          <span className="text-lg font-semibold">Vacaciones del mes actual</span>
+          <span className="text-lg font-semibold">
+            Vacaciones del mes actual
+          </span>
           <Separator />
 
           <div className="space-y-3">
-            {currentVacations.map((vacation) => renderVacationCard(vacation, true))}
+            {currentVacations.map((vacation) =>
+              renderVacationCard(vacation, true)
+            )}
           </div>
         </section>
       ) : (
@@ -339,7 +351,9 @@ export function VacationSection({
                     </div>
                   ) : vacations && vacations.length > 0 ? (
                     <div className="space-y-3">
-                      {vacations.map((vacation) => renderVacationCard(vacation, false))}
+                      {vacations.map((vacation) =>
+                        renderVacationCard(vacation, false)
+                      )}
                     </div>
                   ) : (
                     <p className="text-center text-muted-foreground p-4">

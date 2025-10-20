@@ -1,4 +1,4 @@
 export interface AdvanceUpdateRequest {
-  percentageAmount?: number;
+  amount?: number;
   advanceDate?: string;
 }

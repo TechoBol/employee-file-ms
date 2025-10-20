@@ -3,5 +3,6 @@ export interface VacationResponse {
   employeeId: string;
   startDate: string;
   endDate: string;
+  daysTaken: number;
   notes?: string;
 }
