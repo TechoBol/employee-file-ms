@@ -11,11 +11,23 @@ import {
   ChevronUp,
   Edit2,
   Calendar,
+  Trash2,
 } from 'lucide-react';
 import { VacationService } from '@/rest-client/services/VacationService';
 import type { VacationResponse } from '@/rest-client/interface/response/VacationResponse';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { VacationForm } from './forms/VacationForm';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type VacationSectionProps = {
   employeeId: string;
@@ -82,6 +94,10 @@ export function VacationSection({
     Map<number, VacationResponse[] | null>
   >(new Map());
   const [loadingMonths, setLoadingMonths] = useState<Set<number>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vacationToDelete, setVacationToDelete] =
+    useState<VacationResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchCurrentVacations();
@@ -125,6 +141,45 @@ export function VacationSection({
   const handleEdit = (vacation: VacationResponse) => {
     setEditingVacation(vacation);
     setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (vacation: VacationResponse) => {
+    setVacationToDelete(vacation);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!vacationToDelete) return;
+
+    try {
+      setDeleting(true);
+      await vacationService.deleteVacation(vacationToDelete.id);
+
+      setCurrentVacations((prev) =>
+        prev.filter((v) => v.id !== vacationToDelete.id)
+      );
+
+      toast.success('Vacación eliminada', {
+        description: (
+          <p className="text-slate-700 select-none">
+            La vacación fue eliminada correctamente
+          </p>
+        ),
+      });
+    } catch (error) {
+      console.error('Error al eliminar vacación:', error);
+      toast.error('Error al eliminar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            No se pudo eliminar la vacación
+          </p>
+        ),
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setVacationToDelete(null);
+    }
   };
 
   const handleDialogChange = (open: boolean) => {
@@ -182,7 +237,7 @@ export function VacationSection({
 
   const renderVacationCard = (
     vacation: VacationResponse,
-    showEdit: boolean = true
+    isCurrentMonth: boolean = true
   ) => (
     <div
       key={vacation.id}
@@ -206,15 +261,26 @@ export function VacationSection({
         </div>
       </div>
 
-      {showEdit && (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => handleEdit(vacation)}
-          className="flex-shrink-0 ml-2"
-        >
-          <Edit2 className="h-4 w-4" />
-        </Button>
+      {isCurrentMonth && (
+        <div className="flex gap-2 flex-shrink-0 ml-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleEdit(vacation)}
+            title="Editar"
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleDeleteClick(vacation)}
+            title="Eliminar"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -249,6 +315,28 @@ export function VacationSection({
           onCancel={() => handleDialogChange(false)}
         />
       </ReusableDialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. La vacación será eliminada
+              permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive/85 text-destructive-foreground hover:bg-destructive text-slate-100"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex justify-between">
         <div>

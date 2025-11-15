@@ -28,7 +28,6 @@ import { DepartmentService } from '@/rest-client/services/DepartmentService';
 import { PositionService } from '@/rest-client/services/PositionService';
 
 const departmentService = new DepartmentService();
-
 const positionService = new PositionService();
 
 const formSchema = z.object({
@@ -40,12 +39,14 @@ const formSchema = z.object({
 type PositionFormValues = z.infer<typeof formSchema>;
 
 interface PositionFormProps {
-  onSave?: (newPosition: PositionResponse) => void;
+  onSave?: (position: PositionResponse) => void;
+  position?: PositionResponse | null;
 }
 
-export default function PositionForm({ onSave }: PositionFormProps) {
+export default function PositionForm({ onSave, position }: PositionFormProps) {
   const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const isEditing = !!position;
 
   const form = useForm<PositionFormValues>({
     resolver: zodResolver(formSchema),
@@ -65,26 +66,68 @@ export default function PositionForm({ onSave }: PositionFormProps) {
     fetchDepartments();
   }, []);
 
+  useEffect(() => {
+    if (position) {
+      form.reset({
+        name: position.name,
+        description: position.description || '',
+        departmentId: position.departmentId,
+      });
+    } else {
+      form.reset({
+        name: '',
+        description: '',
+        departmentId: '',
+      });
+    }
+  }, [position, form]);
+
   const onSubmit = async (values: PositionFormValues) => {
     try {
       setLoading(true);
-      const newPosition = await positionService.createPosition({
-        ...values,
-      });
 
-      toast('Puesto creado', {
-        description: `Se creó el puesto: ${values.name}`,
-      });
+      let result: PositionResponse;
+
+      if (isEditing && position) {
+        // Actualizar puesto existente
+        result = await positionService.patchPosition(position.id, {
+          ...values,
+        });
+
+        toast.success('Puesto actualizado', {
+          description: (
+            <p className="text-slate-700 select-none">{`${result.name} fue actualizado correctamente`}</p>
+          ),
+        });
+      } else {
+        // Crear nuevo puesto
+        result = await positionService.createPosition({
+          ...values,
+        });
+
+        toast.success('Puesto creado', {
+          description: (
+            <p className="text-slate-700 select-none">{`Se creó el puesto: ${result.name}`}</p>
+          ),
+        });
+      }
 
       form.reset();
       if (onSave) {
-        onSave(newPosition);
+        onSave(result);
       }
     } catch (error) {
-      console.error('Error al crear el puesto:', error);
-      toast.error('Error al crear el puesto', {
-        description: 'Ocurrió un error inesperado.',
-      });
+      console.error('Error al guardar el puesto:', error);
+      toast.error(
+        isEditing ? 'Error al actualizar' : 'Error al crear el puesto',
+        {
+          description: (
+            <p className="text-slate-700 select-none">
+              Ocurrió un error inesperado.
+            </p>
+          ),
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -163,7 +206,11 @@ export default function PositionForm({ onSave }: PositionFormProps) {
         />
 
         <Button type="submit" disabled={loading}>
-          {loading ? 'Guardando...' : 'Crear puesto'}
+          {loading
+            ? 'Guardando...'
+            : isEditing
+            ? 'Actualizar puesto'
+            : 'Crear puesto'}
         </Button>
       </form>
     </Form>

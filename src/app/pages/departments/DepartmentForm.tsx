@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,11 +28,16 @@ const formSchema = z.object({
 type DepartmentFormValues = z.infer<typeof formSchema>;
 
 interface DepartmentFormProps {
-  onSave?: (newDepartment: DepartmentResponse) => void;
+  onSave?: (department: DepartmentResponse) => void;
+  department?: DepartmentResponse | null;
 }
 
-export default function DepartmentForm({ onSave }: DepartmentFormProps) {
+export default function DepartmentForm({
+  onSave,
+  department,
+}: DepartmentFormProps) {
   const [loading, setLoading] = useState(false);
+  const isEditing = !!department;
 
   const form = useForm<DepartmentFormValues>({
     resolver: zodResolver(formSchema),
@@ -42,28 +47,68 @@ export default function DepartmentForm({ onSave }: DepartmentFormProps) {
     },
   });
 
+  useEffect(() => {
+    if (department) {
+      form.reset({
+        name: department.name,
+        description: department.description || '',
+      });
+    } else {
+      form.reset({
+        name: '',
+        description: '',
+      });
+    }
+  }, [department, form]);
+
   const onSubmit = async (values: DepartmentFormValues) => {
     try {
       setLoading(true);
 
-      const newDepartment = await departmentService.createDepartment({
-        ...values,
-      });
+      let result: DepartmentResponse;
 
-      toast('Departamento creado', {
-        description: `Se creó correctamente: ${newDepartment.name}`,
-      });
+      if (isEditing && department) {
+        console.log('Updating department:', department.id, values);
+        // Actualizar departamento existente
+        result = await departmentService.patchDepartment(department.id, {
+          ...values,
+        });
+
+        toast.success('Departamento actualizado', {
+          description: (
+            <p className="text-slate-700 select-none">
+              {`${result.name} fue actualizado correctamente`}
+            </p>
+          ),
+        });
+      } else {
+        // Crear nuevo departamento
+        result = await departmentService.createDepartment({
+          ...values,
+        });
+
+        toast.success('Departamento creado', {
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se creó correctamente: ${result.name}`}
+            </p>
+          ),
+        });
+      }
 
       if (onSave) {
-        onSave(newDepartment);
+        onSave(result);
       }
 
       form.reset();
     } catch (error) {
-      console.error('Error al crear el departamento:', error);
-      toast.error('Error al crear el departamento', {
-        description: 'Ocurrió un error al intentar guardar.',
-      });
+      console.error('Error al guardar el departamento:', error);
+      toast.error(
+        isEditing ? 'Error al actualizar' : 'Error al crear el departamento',
+        {
+          description: 'Ocurrió un error al intentar guardar.',
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -113,7 +158,11 @@ export default function DepartmentForm({ onSave }: DepartmentFormProps) {
         />
 
         <Button type="submit" disabled={loading}>
-          {loading ? 'Guardando...' : 'Crear departamento'}
+          {loading
+            ? 'Guardando...'
+            : isEditing
+            ? 'Actualizar departamento'
+            : 'Crear departamento'}
         </Button>
       </form>
     </Form>

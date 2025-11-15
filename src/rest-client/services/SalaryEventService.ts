@@ -10,8 +10,9 @@ export class SalaryEventService {
     return httpClient.post<SalaryEventResponse>(this.BASE_URL, salaryCreateRequest);
   }
 
-  async getSalaryEventsByEmployeeId(employeeId: string, startDate?: string, endDate?: string): Promise<SalaryEventResponse[]> {
+  async getSalaryEventsByEmployeeId(employeeId: string, category?: string, startDate?: string, endDate?: string): Promise<SalaryEventResponse[]> {
     const params = new URLSearchParams({
+      ...(category && { category }),
       ...(startDate && { startDate }),
       ...(endDate && { endDate }),
     });
@@ -30,5 +31,9 @@ export class SalaryEventService {
 
   async patchSalaryEvent(id: string, salaryEventUpdateRequest: Partial<SalaryEventUpdateRequest>): Promise<SalaryEventResponse> {
     return httpClient.patch<SalaryEventResponse>(`${this.BASE_URL}/${id}`, salaryEventUpdateRequest);
+  }
+
+  async deleteSalaryEvent(id: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${id}`);
   }
 }

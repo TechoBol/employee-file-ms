@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,11 +36,23 @@ type BaseSalaryFormValues = z.infer<typeof formSchema>;
 
 interface BaseSalaryFormProps {
   employeeId: string;
-  onSave?: (newBaseSalary: BaseSalaryResponse) => void;
+  onSave?: (baseSalary: BaseSalaryResponse) => void;
+  baseSalary?: BaseSalaryResponse | null;
 }
 
-export function BaseSalaryForm({ employeeId, onSave }: BaseSalaryFormProps) {
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('es-BO', {
+    style: 'currency',
+    currency: 'BOB',
+  }).format(value);
+
+export function BaseSalaryForm({
+  employeeId,
+  onSave,
+  baseSalary,
+}: BaseSalaryFormProps) {
   const [loading, setLoading] = useState(false);
+  const isEditing = !!baseSalary;
 
   const form = useForm<BaseSalaryFormValues>({
     resolver: zodResolver(formSchema),
@@ -50,33 +62,74 @@ export function BaseSalaryForm({ employeeId, onSave }: BaseSalaryFormProps) {
     },
   });
 
+  useEffect(() => {
+    if (baseSalary) {
+      form.reset({
+        amount: baseSalary.amount.toString(),
+        startDate: baseSalary.startDate.split('T')[0], // Asegurarse de tener solo la fecha
+      });
+    } else {
+      form.reset({
+        amount: '',
+        startDate: new Date().toISOString().split('T')[0],
+      });
+    }
+  }, [baseSalary, form]);
+
   const onSubmit = async (values: BaseSalaryFormValues) => {
     try {
       setLoading(true);
 
-      const newBaseSalary = await baseSalaryService.createBaseSalary({
-        employeeId,
-        amount: Number(values.amount),
-        startDate: values.startDate,
-      });
+      let result: BaseSalaryResponse;
 
-      toast.success('Salario base creado', {
-        description: `Se creó correctamente: ${new Intl.NumberFormat('es-BO', {
-          style: 'currency',
-          currency: 'BOB',
-        }).format(newBaseSalary.amount)}`,
-      });
+      if (isEditing && baseSalary) {
+        // Actualizar salario base existente
+        result = await baseSalaryService.patchBaseSalary(baseSalary.id, {
+          amount: Number(values.amount),
+          startDate: values.startDate,
+        });
+
+        toast.success('Salario base actualizado', {
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se actualizó correctamente: ${formatCurrency(result.amount)}`}
+            </p>
+          ),
+        });
+      } else {
+        // Crear nuevo salario base
+        result = await baseSalaryService.createBaseSalary({
+          employeeId,
+          amount: Number(values.amount),
+          startDate: values.startDate,
+        });
+
+        toast.success('Salario base creado', {
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se creó correctamente: ${formatCurrency(result.amount)}`}
+            </p>
+          ),
+        });
+      }
 
       if (onSave) {
-        onSave(newBaseSalary);
+        onSave(result);
       }
 
       form.reset();
     } catch (error) {
-      console.error('Error al crear el salario base:', error);
-      toast.error('Error al crear el salario base', {
-        description: 'Ocurrió un error al intentar guardar.',
-      });
+      console.error('Error al guardar el salario base:', error);
+      toast.error(
+        isEditing ? 'Error al actualizar' : 'Error al crear el salario base',
+        {
+          description: (
+            <p className="text-slate-700 select-none">
+              Ocurrió un error al intentar guardar.
+            </p>
+          ),
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -110,7 +163,11 @@ export function BaseSalaryForm({ employeeId, onSave }: BaseSalaryFormProps) {
         />
 
         <Button type="submit" disabled={loading} className="w-full">
-          {loading ? 'Guardando...' : 'Crear salario base'}
+          {loading
+            ? 'Guardando...'
+            : isEditing
+            ? 'Actualizar salario base'
+            : 'Crear salario base'}
         </Button>
       </form>
     </Form>

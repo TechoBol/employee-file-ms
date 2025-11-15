@@ -54,7 +54,7 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
                   departmentName.slice(1)}
               </span>
               <span className="flex items-center gap-2">
-                <StatusBadge status="Active" color="green" />
+                <StatusBadge status={employee.status} />
                 <span className="flex items-center gap-1">
                   <Calendar />
                   <span>

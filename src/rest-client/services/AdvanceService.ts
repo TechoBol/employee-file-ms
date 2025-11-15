@@ -34,4 +34,8 @@ export class AdvanceService {
       advanceUpdateRequest
     );
   }
+
+  async deleteAdvance(advanceId: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${advanceId}`);
+  }
 }

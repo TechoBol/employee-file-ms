@@ -83,6 +83,12 @@ export function VacationForm({
         endDate: new Date(vacation.endDate),
         notes: vacation.notes || '',
       });
+    } else {
+      form.reset({
+        startDate: undefined,
+        endDate: undefined,
+        notes: '',
+      });
     }
   }, [vacation, form]);
 
@@ -97,6 +103,8 @@ export function VacationForm({
       setLoading(true);
       let savedVacation: VacationResponse;
 
+      const days = calculateDays(values.startDate, values.endDate);
+
       if (isEditing) {
         savedVacation = await vacationService.patchVacation(vacation.id, {
           startDate: values.startDate,
@@ -105,10 +113,11 @@ export function VacationForm({
         });
 
         toast.success('Vacación actualizada', {
-          description: `Se actualizó correctamente (${calculateDays(
-            values.startDate,
-            values.endDate
-          )} días)`,
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se actualizó correctamente (${days} días)`}
+            </p>
+          ),
         });
       } else {
         savedVacation = await vacationService.createVacation({
@@ -119,10 +128,11 @@ export function VacationForm({
         });
 
         toast.success('Vacación registrada', {
-          description: `Se registró correctamente (${calculateDays(
-            values.startDate,
-            values.endDate
-          )} días)`,
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se registró correctamente (${days} días)`}
+            </p>
+          ),
         });
       }
 
@@ -135,8 +145,12 @@ export function VacationForm({
       }
     } catch (error) {
       console.error('Error al guardar vacación:', error);
-      toast.error('Error al guardar', {
-        description: 'Ocurrió un error al intentar guardar la vacación.',
+      toast.error(isEditing ? 'Error al actualizar' : 'Error al guardar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            Ocurrió un error al intentar guardar la vacación.
+          </p>
+        ),
       });
     } finally {
       setLoading(false);
@@ -155,7 +169,7 @@ export function VacationForm({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha de inicio</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -181,33 +195,13 @@ export function VacationForm({
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) => {
-                      const today = new Date();
-
+                      // No permitir fechas muy antiguas
                       if (date < new Date('1900-01-01')) return true;
 
+                      // No permitir fechas futuras
+                      const today = new Date();
+                      today.setHours(23, 59, 59, 999);
                       if (date > today) return true;
-
-                      const currentMonth = today.getMonth();
-                      const currentYear = today.getFullYear();
-
-                      const dateMonth = date.getMonth();
-                      const dateYear = date.getFullYear();
-
-                      const isSameYear = dateYear === currentYear;
-                      const isEarlyInMonth = today.getDate() <= 5;
-
-                      const isPreviousMonth =
-                        (isSameYear && dateMonth === currentMonth - 1) ||
-                        (currentMonth === 0 &&
-                          dateYear === currentYear - 1 &&
-                          dateMonth === 11);
-
-                      const isOlderThanPreviousMonth =
-                        dateYear < currentYear ||
-                        (isSameYear && dateMonth < currentMonth - 1);
-
-                      if (isOlderThanPreviousMonth) return true;
-                      if (isPreviousMonth && !isEarlyInMonth) return true;
 
                       return false;
                     }}
@@ -227,7 +221,7 @@ export function VacationForm({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha de fin</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -253,9 +247,13 @@ export function VacationForm({
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) => {
+                      // No permitir fechas muy antiguas
                       if (date < new Date('1900-01-01')) return true;
+
+                      // La fecha de fin debe ser mayor o igual a la fecha de inicio
                       const start = form.watch('startDate');
                       if (start && date < start) return true;
+
                       return false;
                     }}
                     initialFocus

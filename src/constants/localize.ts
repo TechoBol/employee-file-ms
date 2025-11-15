@@ -114,6 +114,7 @@ export const EmployeeDetailsTexts = {
   download: 'Descargar',
   personalInfo: 'Información Personal',
   salary: 'Salario',
+  others: 'Otros',
   memos: 'Memorandums',
   permissions: 'Permisos y Faltas',
   vacations: 'Vacaciones',

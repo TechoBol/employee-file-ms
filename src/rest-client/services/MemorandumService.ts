@@ -34,4 +34,8 @@ export class MemorandumService {
       memorandumUpdateRequest
     );
   }
+
+  async deleteMemorandum(memorandumId: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${memorandumId}`);
+  }
 }

@@ -11,12 +11,23 @@ import {
   ChevronDown,
   ChevronUp,
   Edit2,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AbsenceService } from '@/rest-client/services/AbsenceService';
 import type { AbsenceResponse } from '@/rest-client/interface/response/AbsenceResponse';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { AbsencePermissionForm } from './forms/AbsencePermissionForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export const AbsencePermissionType = {
   PERMISSION: 'PERMISSION',
@@ -75,34 +86,6 @@ const getDurationFromDescription = (
     : PermissionDuration.FULL_DAY;
 };
 
-const canEditAbsence = (absenceDate: string): boolean => {
-  const absence = new Date(absenceDate);
-  const today = new Date();
-
-  const absenceMonth = absence.getMonth();
-  const absenceYear = absence.getFullYear();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  // Mismo mes
-  if (absenceMonth === currentMonth && absenceYear === currentYear) {
-    return true;
-  }
-
-  // Primeros 5 días del mes siguiente
-  const nextMonth = new Date(absenceYear, absenceMonth + 1, 1);
-  const fifthDayOfNextMonth = new Date(
-    absenceYear,
-    absenceMonth + 1,
-    5,
-    23,
-    59,
-    59
-  );
-
-  return today >= nextMonth && today <= fifthDayOfNextMonth;
-};
-
 const getMonthRange = (monthsAgo: number) => {
   const now = new Date();
   const startDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
@@ -119,11 +102,6 @@ const getMonthRange = (monthsAgo: number) => {
     endDate: endDate.toISOString().split('T')[0],
     label: formatMonthYear(startDate),
   };
-};
-
-const isWithinFirstFiveDays = (): boolean => {
-  const today = new Date();
-  return today.getDate() <= 5;
 };
 
 const absenceService = new AbsenceService();
@@ -144,6 +122,10 @@ export function AbsencePermissionSection({
     Map<number, AbsenceResponse[] | null>
   >(new Map());
   const [loadingMonths, setLoadingMonths] = useState<Set<number>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [absenceToDelete, setAbsenceToDelete] =
+    useState<AbsenceResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchCurrentAbsences();
@@ -180,19 +162,7 @@ export function AbsencePermissionSection({
       setEditingAbsence(null);
     } else {
       // Crear nuevo
-      const isAbsence = getAbsenceTypeFromDescription(
-        savedAbsence.description || ''
-      );
-      const typeLabel =
-        isAbsence === AbsencePermissionType.ABSENCE ? 'Falta' : 'Permiso';
-
       setAbsenceEvents([savedAbsence, ...absenceEvents]);
-
-      toast.success(`${typeLabel} registrado`, {
-        description: `Se registró correctamente. Descuento: ${formatCurrency(
-          savedAbsence.deductionAmount
-        )}`,
-      });
     }
 
     setDialogOpen(false);
@@ -202,6 +172,45 @@ export function AbsencePermissionSection({
   const handleEdit = (absence: AbsenceResponse) => {
     setEditingAbsence(absence);
     setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (absence: AbsenceResponse) => {
+    setAbsenceToDelete(absence);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!absenceToDelete) return;
+
+    try {
+      setDeleting(true);
+      await absenceService.deleteAbsence(absenceToDelete.id);
+
+      setAbsenceEvents((prev) =>
+        prev.filter((a) => a.id !== absenceToDelete.id)
+      );
+
+      toast.success('Permiso/Falta eliminado', {
+        description: (
+          <p className="text-slate-700 select-none">
+            El registro fue eliminado correctamente
+          </p>
+        ),
+      });
+    } catch (error) {
+      console.error('Error al eliminar:', error);
+      toast.error('Error al eliminar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            No se pudo eliminar el registro
+          </p>
+        ),
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setAbsenceToDelete(null);
+    }
   };
 
   const handleDialogChange = (open: boolean) => {
@@ -271,14 +280,13 @@ export function AbsencePermissionSection({
 
   const renderAbsenceCard = (
     event: AbsenceResponse,
-    showEdit: boolean = true
+    isCurrentMonth: boolean = true
   ) => {
     const isAbsence = getAbsenceTypeFromDescription(event.description || '');
     const isPermission = !isAbsence;
     const duration = isPermission
       ? getDurationFromDescription(event.description || '')
       : null;
-    const isEditable = showEdit && canEditAbsence(event.date);
 
     return (
       <div
@@ -320,22 +328,31 @@ export function AbsencePermissionSection({
               -{formatCurrency(event.deductionAmount)}
             </p>
           </div>
-          {isEditable && (
-            <Button size="sm" variant="ghost" onClick={() => handleEdit(event)}>
-              <Edit2 className="h-4 w-4" />
-            </Button>
+          {isCurrentMonth && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleEdit(event)}
+                title="Editar"
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleDeleteClick(event)}
+                title="Eliminar"
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
       </div>
     );
   };
-
-  // Determinar cuántos meses atrás mostrar
-  const startMonthsAgo = isWithinFirstFiveDays() ? 0 : 1;
-  const monthsToShow = Array.from(
-    { length: 12 },
-    (_, i) => i + startMonthsAgo
-  ).filter((m) => m > 0);
 
   if (loading) {
     return (
@@ -369,6 +386,28 @@ export function AbsencePermissionSection({
           onCancel={() => handleDialogChange(false)}
         />
       </ReusableDialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El registro será eliminado
+              permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive/85 text-destructive-foreground hover:bg-destructive text-slate-100"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex justify-between">
         <div>
@@ -445,7 +484,7 @@ export function AbsencePermissionSection({
       <div className="flex flex-col gap-4">
         <span className="text-lg font-semibold">Meses anteriores</span>
 
-        {monthsToShow.map((monthsAgo) => {
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
           const { label } = getMonthRange(monthsAgo);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);

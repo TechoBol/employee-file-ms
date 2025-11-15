@@ -25,4 +25,8 @@ export class AbsenceService {
       absenceUpdateRequest
     );
   }
+
+  async deleteAbsence(absenceId: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${absenceId}`);
+  }
 }

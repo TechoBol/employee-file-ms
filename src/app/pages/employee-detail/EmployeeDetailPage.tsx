@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PersonalInfo } from './components/PersonalInfo';
 import { EmployeeDetailsTexts } from '@/constants/localize';
 import { Card, CardContent } from '@/components/ui/card';
-import { NotPageYet } from './components/NotPageYet';
 import { SalarySummary } from './components/SalarySummary';
 import { AbsencePermissionSection } from './components/AbsencePermissionSection';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
@@ -13,6 +12,8 @@ import { AdvanceSection } from './components/AdvanceSection';
 import { VacationSection } from './components/VacationSection';
 import { MemorandumSection } from './components/MemorandumSection';
 import { EmployeeService } from '@/rest-client/services/EmployeeService';
+import { SalaryEventsSection } from './components/SalaryEventsSection';
+import { EmployeeDisassociationSection } from './components/EmployeeDisassociationSection';
 
 const employeeService = new EmployeeService();
 
@@ -62,10 +63,16 @@ export function EmployeeDetailPage() {
       disabled: false,
     },
     {
+      value: 'others',
+      label: EmployeeDetailsTexts.others,
+      content: <SalaryEventsSection employeeId={employeeId!} />,
+      disabled: false,
+    },
+    {
       value: 'dismissal',
       label: EmployeeDetailsTexts.dismissal,
-      content: <NotPageYet />,
-      disabled: true,
+      content: <EmployeeDisassociationSection employee={employee!} />,
+      disabled: false,
     },
   ];
 

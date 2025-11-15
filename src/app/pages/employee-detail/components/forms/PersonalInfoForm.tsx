@@ -72,7 +72,7 @@ export function PersonalInfoForm() {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha de nacimiento</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button

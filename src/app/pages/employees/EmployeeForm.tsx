@@ -159,8 +159,10 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         // Actualizar empleado existente
         const result = await employeeService.patchEmployee(employee.id, values);
 
-        toast('Usuario actualizado', {
-          description: `${values.firstName} ${values.lastName} ha sido actualizado.`,
+        toast('Empleado actualizado', {
+          description: (
+            <p className="text-slate-700 select-none">{`${values.firstName} ${values.lastName} ha sido actualizado.`}</p>
+          ),
         });
 
         if (onSave) {
@@ -170,8 +172,10 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         // Crear nuevo empleado
         const result = await employeeService.createEmployee(values);
 
-        toast('Usuario creado', {
-          description: `${values.firstName} ${values.lastName} ha sido añadido.`,
+        toast('Empleado creado', {
+          description: (
+            <p className="text-slate-700 select-none">{`${values.firstName} ${values.lastName} ha sido añadido.`}</p>
+          ),
         });
 
         if (onSave) {
@@ -260,7 +264,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Fecha de Nacimiento</FormLabel>
-                  <Popover>
+                  <Popover modal>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -492,7 +496,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Fecha de Contratación</FormLabel>
-                <Popover>
+                <Popover modal>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button

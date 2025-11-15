@@ -17,6 +17,8 @@ export interface EmployeeResponse {
   positionName: string;
   branchId: string;
   branchName: string;
+  disassociated: boolean;
+  disassociatedAt: string | null;
 }
 
 export interface EmergencyContactResponse {

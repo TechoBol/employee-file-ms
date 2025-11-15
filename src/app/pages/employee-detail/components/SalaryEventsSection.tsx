@@ -5,19 +5,19 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import {
   Plus,
-  FileText,
+  DollarSign,
   Loader2,
   ChevronDown,
   ChevronUp,
   Edit2,
-  ThumbsUp,
-  ThumbsDown,
+  TrendingUp,
+  TrendingDown,
   Trash2,
 } from 'lucide-react';
-import { MemorandumService } from '@/rest-client/services/MemorandumService';
-import type { MemorandumResponse } from '@/rest-client/interface/response/MemorandumResponse';
+import { SalaryEventService } from '@/rest-client/services/SalaryEventService';
+import type { SalaryEventResponse } from '@/rest-client/interface/response/SalaryEventResponse';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
-import { MemorandumForm } from './forms/MemorandumForm';
+import { SalaryEventForm } from './forms/SalaryEventForm';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type MemorandumSectionProps = {
+type SalaryEventsSectionProps = {
   employeeId: string;
   employeeName?: string;
 };
@@ -48,6 +48,13 @@ const formatMonthYear = (date: Date) => {
     year: 'numeric',
     month: 'long',
   });
+};
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('es-BO', {
+    style: 'currency',
+    currency: 'BOB',
+  }).format(amount);
 };
 
 const getMonthRange = (monthsAgo: number) => {
@@ -68,113 +75,116 @@ const getMonthRange = (monthsAgo: number) => {
   };
 };
 
-const memorandumService = new MemorandumService();
+const salaryEventService = new SalaryEventService();
 
-export function MemorandumSection({
+export function SalaryEventsSection({
   employeeId,
   employeeName,
-}: MemorandumSectionProps) {
-  const [currentMemorandums, setCurrentMemorandums] = useState<
-    MemorandumResponse[]
+}: SalaryEventsSectionProps) {
+  const [currentSalaryEvents, setCurrentSalaryEvents] = useState<
+    SalaryEventResponse[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingMemorandum, setEditingMemorandum] =
-    useState<MemorandumResponse | null>(null);
+  const [editingSalaryEvent, setEditingSalaryEvent] =
+    useState<SalaryEventResponse | null>(null);
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
-  const [monthlyMemorandums, setMonthlyMemorandums] = useState<
-    Map<number, MemorandumResponse[] | null>
+  const [monthlySalaryEvents, setMonthlySalaryEvents] = useState<
+    Map<number, SalaryEventResponse[] | null>
   >(new Map());
   const [loadingMonths, setLoadingMonths] = useState<Set<number>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [memorandumToDelete, setMemorandumToDelete] =
-    useState<MemorandumResponse | null>(null);
+  const [salaryEventToDelete, setSalaryEventToDelete] =
+    useState<SalaryEventResponse | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchCurrentMemorandums();
+    fetchCurrentSalaryEvents();
   }, [employeeId]);
 
-  const fetchCurrentMemorandums = async () => {
+  const fetchCurrentSalaryEvents = async () => {
     try {
       setLoading(true);
       setError(null);
-      const memorandums = await memorandumService.getMemorandumsByEmployee(
-        employeeId
+      const salaryEvents = await salaryEventService.getSalaryEventsByEmployeeId(
+        employeeId,
+        'MANUAL'
       );
-      setCurrentMemorandums(memorandums);
+      setCurrentSalaryEvents(salaryEvents);
     } catch (err) {
-      console.error('Error fetching memorandums:', err);
+      console.error('Error fetching salary events:', err);
       setError(
-        err instanceof Error ? err.message : 'Error al cargar memorándums'
+        err instanceof Error
+          ? err.message
+          : 'Error al cargar eventos salariales'
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMemorandumSaved = (savedMemorandum: MemorandumResponse) => {
-    if (editingMemorandum) {
-      setCurrentMemorandums((prev) =>
-        prev.map((m) => (m.id === savedMemorandum.id ? savedMemorandum : m))
+  const handleSalaryEventSaved = (savedSalaryEvent: SalaryEventResponse) => {
+    if (editingSalaryEvent) {
+      setCurrentSalaryEvents((prev) =>
+        prev.map((e) => (e.id === savedSalaryEvent.id ? savedSalaryEvent : e))
       );
-      setEditingMemorandum(null);
+      setEditingSalaryEvent(null);
     } else {
-      setCurrentMemorandums([savedMemorandum, ...currentMemorandums]);
+      setCurrentSalaryEvents([savedSalaryEvent, ...currentSalaryEvents]);
     }
     setDialogOpen(false);
-    fetchCurrentMemorandums();
+    fetchCurrentSalaryEvents();
   };
 
-  const handleEdit = (memorandum: MemorandumResponse) => {
-    setEditingMemorandum(memorandum);
+  const handleEdit = (salaryEvent: SalaryEventResponse) => {
+    setEditingSalaryEvent(salaryEvent);
     setDialogOpen(true);
   };
 
-  const handleDeleteClick = (memorandum: MemorandumResponse) => {
-    setMemorandumToDelete(memorandum);
+  const handleDeleteClick = (salaryEvent: SalaryEventResponse) => {
+    setSalaryEventToDelete(salaryEvent);
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!memorandumToDelete) return;
+    if (!salaryEventToDelete) return;
 
     try {
       setDeleting(true);
-      await memorandumService.deleteMemorandum(memorandumToDelete.id);
+      await salaryEventService.deleteSalaryEvent(salaryEventToDelete.id);
 
-      setCurrentMemorandums((prev) =>
-        prev.filter((m) => m.id !== memorandumToDelete.id)
+      setCurrentSalaryEvents((prev) =>
+        prev.filter((e) => e.id !== salaryEventToDelete.id)
       );
 
-      toast.success('Memorándum eliminado', {
+      toast.success('Evento salarial eliminado', {
         description: (
           <p className="text-slate-700 select-none">
-            El memorándum fue eliminado correctamente
+            El evento salarial fue eliminado correctamente
           </p>
         ),
       });
     } catch (error) {
-      console.error('Error al eliminar memorándum:', error);
+      console.error('Error al eliminar evento salarial:', error);
       toast.error('Error al eliminar', {
         description: (
           <p className="text-slate-700 select-none">
-            No se pudo eliminar el memorándum
+            No se pudo eliminar el evento salarial
           </p>
         ),
       });
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
-      setMemorandumToDelete(null);
+      setSalaryEventToDelete(null);
     }
   };
 
   const handleDialogChange = (open: boolean) => {
     setDialogOpen(open);
     if (!open) {
-      setEditingMemorandum(null);
+      setEditingSalaryEvent(null);
     }
   };
 
@@ -188,25 +198,27 @@ export function MemorandumSection({
     } else {
       setExpandedMonths((prev) => new Set(prev).add(monthsAgo));
 
-      if (!monthlyMemorandums.has(monthsAgo)) {
+      if (!monthlySalaryEvents.has(monthsAgo)) {
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
           const { startDate, endDate } = getMonthRange(monthsAgo);
-          const memorandums = await memorandumService.getMemorandumsByEmployee(
-            employeeId,
-            startDate,
-            endDate
-          );
-          setMonthlyMemorandums((prev) =>
-            new Map(prev).set(monthsAgo, memorandums)
+          const salaryEvents =
+            await salaryEventService.getSalaryEventsByEmployeeId(
+              employeeId,
+              'MANUAL',
+              startDate,
+              endDate
+            );
+          setMonthlySalaryEvents((prev) =>
+            new Map(prev).set(monthsAgo, salaryEvents)
           );
         } catch (err) {
           console.error(
-            `Error fetching memorandums for month ${monthsAgo}:`,
+            `Error fetching salary events for month ${monthsAgo}:`,
             err
           );
-          setMonthlyMemorandums((prev) => new Map(prev).set(monthsAgo, []));
+          setMonthlySalaryEvents((prev) => new Map(prev).set(monthsAgo, []));
         } finally {
           setLoadingMonths((prev) => {
             const newSet = new Set(prev);
@@ -218,53 +230,68 @@ export function MemorandumSection({
     }
   };
 
-  const positiveMemorandums = currentMemorandums.filter((m) => m.isPositive);
-  const negativeMemorandums = currentMemorandums.filter((m) => !m.isPositive);
+  const bonusEvents = currentSalaryEvents.filter((e) => e.type === 'BONUS');
+  const deductionEvents = currentSalaryEvents.filter(
+    (e) => e.type === 'DEDUCTION'
+  );
 
-  const renderMemorandumCard = (
-    memorandum: MemorandumResponse,
+  const totalBonuses = bonusEvents.reduce((sum, e) => sum + e.amount, 0);
+  const totalDeductions = deductionEvents.reduce((sum, e) => sum + e.amount, 0);
+
+  const renderSalaryEventCard = (
+    salaryEvent: SalaryEventResponse,
     isCurrentMonth: boolean = true
   ) => {
-    const bgColor = memorandum.isPositive ? 'bg-green-50' : 'bg-red-50';
-    const borderColor = memorandum.isPositive
-      ? 'border-green-200'
-      : 'border-red-200';
-    const iconColor = memorandum.isPositive ? 'text-green-600' : 'text-red-600';
+    const isBonus = salaryEvent.type === 'BONUS';
+    const bgColor = isBonus ? 'bg-green-50' : 'bg-red-50';
+    const borderColor = isBonus ? 'border-green-200' : 'border-red-200';
+    const iconColor = isBonus ? 'text-green-600' : 'text-red-600';
 
     return (
       <div
-        key={memorandum.id}
+        key={salaryEvent.id}
         className={`flex items-start justify-between p-4 border rounded-lg ${bgColor} ${borderColor}`}
       >
         <div className="flex items-start gap-3 flex-1">
-          {memorandum.isPositive ? (
+          {isBonus ? (
             <div className="bg-green-600 p-2 rounded-full flex-shrink-0">
-              <ThumbsUp className="h-4 w-4 text-white" />
+              <TrendingUp className="h-4 w-4 text-white" />
             </div>
           ) : (
             <div className="bg-red-600 p-2 rounded-full flex-shrink-0">
-              <ThumbsDown className="h-4 w-4 text-white" />
+              <TrendingDown className="h-4 w-4 text-white" />
             </div>
           )}
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <Badge
-                variant={memorandum.isPositive ? 'default' : 'destructive'}
-                className={
-                  memorandum.isPositive ? 'bg-green-600' : 'bg-red-600'
-                }
+                variant={isBonus ? 'default' : 'destructive'}
+                className={isBonus ? 'bg-green-600' : 'bg-red-600'}
               >
-                {memorandum.type}
+                {isBonus ? 'Bono' : 'Descuento'}
               </Badge>
               <Badge variant="outline">
-                {formatDate(memorandum.memorandumDate)}
+                {formatDate(salaryEvent.startDate)}
               </Badge>
+              {salaryEvent.endDate && (
+                <Badge variant="outline" className="text-xs">
+                  Hasta {formatDate(salaryEvent.endDate)}
+                </Badge>
+              )}
             </div>
-            <p className={`text-sm font-medium ${iconColor} mb-2`}>
-              {memorandum.isPositive ? 'Positivo' : 'Negativo'}
+            <p className={`text-lg font-bold ${iconColor} mb-1`}>
+              {formatCurrency(salaryEvent.amount)}
             </p>
-            <p className="text-sm text-gray-700">{memorandum.description}</p>
+            {salaryEvent.description && (
+              <p className="text-sm text-gray-700">{salaryEvent.description}</p>
+            )}
+            {/* <p className="text-xs text-gray-500 mt-1">
+              Frecuencia:{' '}
+              {salaryEvent.frequency === 'ONE_TIME'
+                ? 'Una vez'
+                : salaryEvent.frequency}
+            </p> */}
           </div>
         </div>
 
@@ -273,7 +300,7 @@ export function MemorandumSection({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => handleEdit(memorandum)}
+              onClick={() => handleEdit(salaryEvent)}
               title="Editar"
             >
               <Edit2 className="h-4 w-4" />
@@ -282,9 +309,8 @@ export function MemorandumSection({
           <Button
             size="sm"
             variant="destructive"
-            onClick={() => handleDeleteClick(memorandum)}
+            onClick={() => handleDeleteClick(salaryEvent)}
             title="Eliminar"
-            className=""
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -298,7 +324,7 @@ export function MemorandumSection({
       <section className="flex flex-col gap-6 p-4">
         <div className="flex items-center justify-center p-8">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Cargando memorándums...</span>
+          <span className="ml-2">Cargando eventos salariales...</span>
         </div>
       </section>
     );
@@ -307,19 +333,23 @@ export function MemorandumSection({
   return (
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
-        title={editingMemorandum ? 'Editar Memorándum' : 'Registrar Memorándum'}
+        title={
+          editingSalaryEvent
+            ? 'Editar Evento Salarial'
+            : 'Registrar Evento Salarial'
+        }
         description={
-          editingMemorandum
-            ? 'Modifica los datos del memorándum'
-            : 'Registra un nuevo memorándum para el empleado'
+          editingSalaryEvent
+            ? 'Modifica los datos del evento salarial'
+            : 'Registra un nuevo evento salarial para el empleado'
         }
         open={dialogOpen}
         onOpenChange={handleDialogChange}
       >
-        <MemorandumForm
+        <SalaryEventForm
           employeeId={employeeId}
-          memorandum={editingMemorandum || undefined}
-          onSave={handleMemorandumSaved}
+          salaryEvent={editingSalaryEvent || undefined}
+          onSave={handleSalaryEventSaved}
           onCancel={() => handleDialogChange(false)}
         />
       </ReusableDialog>
@@ -329,8 +359,8 @@ export function MemorandumSection({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. El memorándum será eliminado
-              permanentemente.
+              Esta acción no se puede deshacer. El evento salarial será
+              eliminado permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -348,14 +378,14 @@ export function MemorandumSection({
 
       <div className="flex justify-between">
         <div>
-          <span className="text-xl font-bold">Memorándums</span>
+          <span className="text-xl font-bold">Eventos Salariales</span>
           {employeeName && (
             <p className="text-sm text-muted-foreground">{employeeName}</p>
           )}
         </div>
         <Button onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Registrar Memorándum
+          Registrar Evento
         </Button>
       </div>
 
@@ -363,13 +393,13 @@ export function MemorandumSection({
         <Card className="rounded-2xl shadow-md">
           <CardContent className="p-6 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-600" />
+              <DollarSign className="h-4 w-4 text-blue-600" />
               <span className="text-sm text-muted-foreground">
                 Total del mes
               </span>
             </div>
             <span className="text-2xl font-semibold">
-              {currentMemorandums.length}
+              {currentSalaryEvents.length}
             </span>
           </CardContent>
         </Card>
@@ -377,11 +407,15 @@ export function MemorandumSection({
         <Card className="rounded-2xl shadow-md bg-green-50">
           <CardContent className="p-6 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <ThumbsUp className="h-4 w-4 text-green-600" />
-              <span className="text-sm text-muted-foreground">Positivos</span>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <span className="text-sm text-muted-foreground">Bonos</span>
             </div>
             <span className="text-2xl font-bold text-green-700">
-              {positiveMemorandums.length}
+              {formatCurrency(totalBonuses)}
+            </span>
+            <span className="text-xs text-green-600">
+              {bonusEvents.length}{' '}
+              {bonusEvents.length === 1 ? 'evento' : 'eventos'}
             </span>
           </CardContent>
         </Card>
@@ -389,34 +423,36 @@ export function MemorandumSection({
         <Card className="rounded-2xl shadow-md bg-red-50">
           <CardContent className="p-6 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <ThumbsDown className="h-4 w-4 text-red-600" />
-              <span className="text-sm text-muted-foreground">Negativos</span>
+              <TrendingDown className="h-4 w-4 text-red-600" />
+              <span className="text-sm text-muted-foreground">Descuentos</span>
             </div>
             <span className="text-2xl font-bold text-red-700">
-              {negativeMemorandums.length}
+              {formatCurrency(totalDeductions)}
+            </span>
+            <span className="text-xs text-red-600">
+              {deductionEvents.length}{' '}
+              {deductionEvents.length === 1 ? 'evento' : 'eventos'}
             </span>
           </CardContent>
         </Card>
       </div>
 
-      {currentMemorandums.length > 0 ? (
+      {currentSalaryEvents.length > 0 ? (
         <section className="flex flex-col gap-2 rounded-xl border p-4">
-          <span className="text-lg font-semibold">
-            Memorándums del mes actual
-          </span>
+          <span className="text-lg font-semibold">Eventos del mes actual</span>
           <Separator />
 
           <div className="space-y-3">
-            {currentMemorandums.map((memorandum) =>
-              renderMemorandumCard(memorandum, true)
+            {currentSalaryEvents.map((salaryEvent) =>
+              renderSalaryEventCard(salaryEvent, true)
             )}
           </div>
         </section>
       ) : (
         <div className="text-center p-8 border rounded-xl">
-          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground mb-4">
-            No hay memorándums registrados este mes
+            No hay eventos salariales registrados este mes
           </p>
           <Button onClick={() => setDialogOpen(true)} variant="outline">
             <Plus className="mr-2 h-4 w-4" />
@@ -434,7 +470,7 @@ export function MemorandumSection({
           const { label } = getMonthRange(monthsAgo);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
-          const memorandums = monthlyMemorandums.get(monthsAgo);
+          const salaryEvents = monthlySalaryEvents.get(monthsAgo);
 
           return (
             <div key={monthsAgo} className="border rounded-xl">
@@ -458,15 +494,15 @@ export function MemorandumSection({
                       <Loader2 className="h-6 w-6 animate-spin" />
                       <span className="ml-2">Cargando...</span>
                     </div>
-                  ) : memorandums && memorandums.length > 0 ? (
+                  ) : salaryEvents && salaryEvents.length > 0 ? (
                     <div className="space-y-3">
-                      {memorandums.map((memorandum) =>
-                        renderMemorandumCard(memorandum, false)
+                      {salaryEvents.map((salaryEvent) =>
+                        renderSalaryEventCard(salaryEvent, false)
                       )}
                     </div>
                   ) : (
                     <p className="text-center text-muted-foreground p-4">
-                      No hay memorándums en este mes
+                      No hay eventos salariales en este mes
                     </p>
                   )}
                 </div>

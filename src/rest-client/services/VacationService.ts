@@ -34,4 +34,8 @@ export class VacationService {
       vacationUpdateRequest
     );
   }
+
+  async deleteVacation(vacationId: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${vacationId}`);
+  }
 }

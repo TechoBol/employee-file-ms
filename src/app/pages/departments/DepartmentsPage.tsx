@@ -1,12 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Plus } from 'lucide-react';
+import { RefreshCw, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import DepartmentForm from './DepartmentForm';
 import type { DepartmentResponse } from '@/rest-client/interface/response/DepartmentResponse';
 import { DepartmentService } from '@/rest-client/services/DepartmentService';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const departmentService = new DepartmentService();
 
@@ -17,6 +28,12 @@ export function DepartmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] =
+    useState<DepartmentResponse | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] =
+    useState<DepartmentResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchDepartments = async () => {
     try {
@@ -38,10 +55,74 @@ export function DepartmentsPage() {
     }
   };
 
-  const onSave = async (newDepartment: DepartmentResponse) => {
-    setDepartments((prev) => [newDepartment, ...prev]);
-    setFiltered((prev) => [newDepartment, ...prev]);
+  const onSave = async (department: DepartmentResponse) => {
+    if (editingDepartment) {
+      // Actualizar departamento existente
+      setDepartments((prev) =>
+        prev.map((d) => (d.id === department.id ? department : d))
+      );
+      setFiltered((prev) =>
+        prev.map((d) => (d.id === department.id ? department : d))
+      );
+    } else {
+      // Agregar nuevo departamento
+      setDepartments((prev) => [department, ...prev]);
+      setFiltered((prev) => [department, ...prev]);
+    }
     setDialogOpen(false);
+    setEditingDepartment(null);
+  };
+
+  const handleEdit = (department: DepartmentResponse) => {
+    setEditingDepartment(department);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (department: DepartmentResponse) => {
+    setDepartmentToDelete(department);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!departmentToDelete) return;
+
+    try {
+      setDeleting(true);
+      await departmentService.deleteDepartment(departmentToDelete.id);
+
+      setDepartments((prev) =>
+        prev.filter((d) => d.id !== departmentToDelete.id)
+      );
+      setFiltered((prev) => prev.filter((d) => d.id !== departmentToDelete.id));
+
+      toast.success('Departamento eliminado', {
+        description: (
+          <p className="text-slate-700 select-none">
+            {`${departmentToDelete.name} fue eliminado correctamente`}
+          </p>
+        ),
+      });
+    } catch (error) {
+      console.error('Error al eliminar departamento:', error);
+      toast.error('Error al eliminar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            No se pudo eliminar el departamento
+          </p>
+        ),
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setDepartmentToDelete(null);
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setEditingDepartment(null);
+    }
   };
 
   useEffect(() => {
@@ -58,13 +139,43 @@ export function DepartmentsPage() {
   return (
     <div className="container mx-auto">
       <ReusableDialog
-        title="Agregar departamento"
-        description="Completa los detalles del nuevo departamento"
+        title={
+          editingDepartment ? 'Editar departamento' : 'Agregar departamento'
+        }
+        description={
+          editingDepartment
+            ? 'Modifica los detalles del departamento'
+            : 'Completa los detalles del nuevo departamento'
+        }
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleDialogClose}
       >
-        <DepartmentForm onSave={onSave} />
+        <DepartmentForm onSave={onSave} department={editingDepartment} />
       </ReusableDialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El departamento{' '}
+              <span className="font-semibold">{departmentToDelete?.name}</span>{' '}
+              será eliminado permanentemente. Ademas ningun empleado debe
+              pertenecer a este departmento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive/85 text-destructive-foreground hover:bg-destructive text-slate-100"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -116,11 +227,35 @@ export function DepartmentsPage() {
       {!loading && !error && (
         <ul className="space-y-2">
           {filtered.map((dept) => (
-            <li key={dept.id} className="p-4 bg-card rounded-md shadow-sm">
-              <p className="font-medium">{dept.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {dept.description || 'Sin descripción'}
-              </p>
+            <li
+              key={dept.id}
+              className="p-4 bg-card rounded-md shadow-sm flex items-start justify-between gap-4"
+            >
+              <div className="flex-1">
+                <p className="font-medium">{dept.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {dept.description || 'Sin descripción'}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleEdit(dept)}
+                  title="Editar"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDeleteClick(dept)}
+                  title="Eliminar"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

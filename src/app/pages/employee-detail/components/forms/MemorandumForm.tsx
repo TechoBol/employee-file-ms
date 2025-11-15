@@ -105,7 +105,11 @@ export function MemorandumForm({
         );
 
         toast.success('Memorándum actualizado', {
-          description: 'Se actualizó correctamente',
+          description: (
+            <p className="text-slate-700 select-none">
+              Se actualizó correctamente
+            </p>
+          ),
         });
       } else {
         savedMemorandum = await memorandumService.createMemorandum({
@@ -117,9 +121,13 @@ export function MemorandumForm({
         });
 
         toast.success('Memorándum registrado', {
-          description: `Se registró correctamente como ${
-            values.isPositive ? 'positivo' : 'negativo'
-          }`,
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se registró correctamente como ${
+                values.isPositive ? 'positivo' : 'negativo'
+              }`}
+            </p>
+          ),
         });
       }
 
@@ -133,7 +141,11 @@ export function MemorandumForm({
     } catch (error) {
       console.error('Error al guardar memorándum:', error);
       toast.error('Error al guardar', {
-        description: 'Ocurrió un error al intentar guardar el memorándum.',
+        description: (
+          <p className="text-slate-700 select-none">
+            Ocurrió un error al intentar guardar el memorándum.
+          </p>
+        ),
       });
     } finally {
       setLoading(false);
@@ -192,7 +204,7 @@ export function MemorandumForm({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha del memorándum</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -218,34 +230,13 @@ export function MemorandumForm({
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) => {
+                      // No permitir fechas futuras
                       const today = new Date();
-
+                      today.setHours(23, 59, 59, 999);
                       if (date > today) return true;
 
+                      // No permitir fechas muy antiguas
                       if (date < new Date('1900-01-01')) return true;
-
-                      const currentMonth = today.getMonth();
-                      const currentYear = today.getFullYear();
-
-                      const dateMonth = date.getMonth();
-                      const dateYear = date.getFullYear();
-
-                      const isSameYear = dateYear === currentYear;
-
-                      const isEarlyInMonth = today.getDate() <= 5;
-
-                      const isPreviousMonth =
-                        (isSameYear && dateMonth === currentMonth - 1) ||
-                        (currentMonth === 0 &&
-                          dateYear === currentYear - 1 &&
-                          dateMonth === 11);
-
-                      const isOlderThanPreviousMonth =
-                        dateYear < currentYear ||
-                        (isSameYear && dateMonth < currentMonth - 1);
-
-                      if (isOlderThanPreviousMonth) return true;
-                      if (isPreviousMonth && !isEarlyInMonth) return true;
 
                       return false;
                     }}

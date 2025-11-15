@@ -14,7 +14,16 @@ export class PositionService {
     return httpClient.get<PositionResponse[]>(this.BASE_URL);
   }
 
+  async getPositionsByDepartment(departmentId: string): Promise<PositionResponse[]> {
+    const url = `${this.BASE_URL}/departments/${departmentId}`;
+    return httpClient.get<PositionResponse[]>(url);
+  }
+
   async patchPosition(id: string, positionUpdateRequest: Partial<PositionUpdateRequest>): Promise<PositionResponse> {
     return httpClient.patch<PositionResponse>(`${this.BASE_URL}/${id}`, positionUpdateRequest);
+  }
+
+  async deletePosition(id: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${id}`);
   }
 }

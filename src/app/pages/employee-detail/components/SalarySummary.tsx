@@ -12,7 +12,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { BaseSalaryForm } from './forms/BaseSalaryForm';
 import { PayrollService } from '@/rest-client/services/PayrollService';
-import type { PaymentDeductionResponse, PaymentDetailsResponse } from '@/rest-client/interface/response/PaymentResponse';
+import type {
+  PaymentDeductionResponse,
+  PaymentDetailsResponse,
+} from '@/rest-client/interface/response/PaymentResponse';
 import { PaymentService } from '@/rest-client/services/PaymentService';
 
 type SalarySummaryProps = {
@@ -140,27 +143,26 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
     setDialogOpen(true);
   };
 
-  const handleBaseSalaryCreated = async (newBaseSalary: BaseSalaryResponse) => {
-    setBaseSalary(newBaseSalary);
+  const handleBaseSalaryUpdated = async (
+    updatedBaseSalary: BaseSalaryResponse
+  ) => {
+    setBaseSalary(updatedBaseSalary);
     setDialogOpen(false);
 
-    // Refetch payroll después de actualizar el salario base
     try {
       const updatedPayroll = await payrollService.getPayrollsByEmployeeId(
         employeeId
       );
       setPayroll(updatedPayroll);
-
-      toast.success('Salario base actualizado', {
-        description: `Se actualizó correctamente: ${formatCurrency(
-          newBaseSalary.amount
-        )}`,
-      });
     } catch (err) {
       console.error('Error refetching payroll:', err);
       toast.error('Error al actualizar el payroll', {
-        description:
-          'El salario base se guardó pero hubo un error al actualizar los cálculos',
+        description: (
+          <p className="text-slate-700 select-none">
+            El salario base se guardó pero hubo un error al actualizar los
+            cálculos
+          </p>
+        ),
       });
     }
   };
@@ -218,7 +220,8 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
         return (
           <BaseSalaryForm
             employeeId={employeeId}
-            onSave={handleBaseSalaryCreated}
+            onSave={handleBaseSalaryUpdated}
+            baseSalary={baseSalary}
           />
         );
       case 'DEDUCTION':
@@ -226,12 +229,12 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
       default:
         return null;
     }
-  }, [dialogContent, employeeId]);
+  }, [dialogContent, employeeId, baseSalary]);
 
   const getDialogTitle = () => {
     switch (dialogContent) {
       case 'BASE_SALARY':
-        return 'Crear Salario Base';
+        return baseSalary ? 'Actualizar Salario Base' : 'Crear Salario Base';
       case 'DEDUCTION':
         return 'Registrar Deducción';
       default:
@@ -242,7 +245,9 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
   const getDialogDescription = () => {
     switch (dialogContent) {
       case 'BASE_SALARY':
-        return 'Establece el salario base para el empleado';
+        return baseSalary
+          ? 'Modifica el salario base del empleado'
+          : 'Establece el salario base para el empleado';
       case 'DEDUCTION':
         return 'Ingresa los detalles de la deducción';
       default:

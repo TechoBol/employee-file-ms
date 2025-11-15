@@ -26,4 +26,8 @@ export class EmployeeService {
       employeeUpdateRequest
     );
   }
+
+  async disassociateEmployee(employeeId: string): Promise<EmployeeResponse> {
+    return httpClient.patch<EmployeeResponse>(`${this.BASE_URL}/${employeeId}/disassociate`, {});
+  }
 }

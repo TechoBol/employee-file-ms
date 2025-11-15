@@ -17,4 +17,8 @@ export class BranchService {
   async patchBranch(id: string, branchUpdateRequest: Partial<BranchUpdateRequest>): Promise<BranchResponse> {
     return httpClient.patch<BranchResponse>(`${this.BASE_URL}/${id}`, branchUpdateRequest);
   }
+
+  async deleteBranch(id: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${id}`);
+  }
 }

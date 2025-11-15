@@ -9,11 +9,24 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 import { AdvanceService } from '@/rest-client/services/AdvanceService';
 import type { AdvanceResponse } from '@/rest-client/interface/response/AdvanceResponse';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { AdvanceForm } from './forms/AdvanceForm';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type AdvanceSectionProps = {
   employeeId: string;
@@ -70,37 +83,103 @@ export function AdvanceSection({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingAdvance, setEditingAdvance] = useState<AdvanceResponse | null>(
+    null
+  );
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlyAdvances, setMonthlyAdvances] = useState<
     Map<number, AdvanceResponse[] | null>
   >(new Map());
   const [loadingMonths, setLoadingMonths] = useState<Set<number>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [advanceToDelete, setAdvanceToDelete] =
+    useState<AdvanceResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchCurrentAdvances = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const advances = await advanceService.getAdvancesByEmployee(employeeId);
-        setCurrentAdvances(advances);
-      } catch (err) {
-        console.error('Error fetching advances:', err);
-        setError(
-          err instanceof Error ? err.message : 'Error al cargar adelantos'
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (employeeId) {
-      fetchCurrentAdvances();
-    }
+    fetchCurrentAdvances();
   }, [employeeId]);
 
-  const handleAdvanceCreated = (newAdvance: AdvanceResponse) => {
-    setCurrentAdvances([newAdvance, ...currentAdvances]);
+  const fetchCurrentAdvances = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const advances = await advanceService.getAdvancesByEmployee(employeeId);
+      setCurrentAdvances(advances);
+    } catch (err) {
+      console.error('Error fetching advances:', err);
+      setError(
+        err instanceof Error ? err.message : 'Error al cargar adelantos'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdvanceSaved = (savedAdvance: AdvanceResponse) => {
+    if (editingAdvance) {
+      // Actualizar existente
+      setCurrentAdvances((prev) =>
+        prev.map((a) => (a.id === savedAdvance.id ? savedAdvance : a))
+      );
+      setEditingAdvance(null);
+    } else {
+      // Crear nuevo
+      setCurrentAdvances([savedAdvance, ...currentAdvances]);
+    }
     setDialogOpen(false);
+    fetchCurrentAdvances();
+  };
+
+  const handleEdit = (advance: AdvanceResponse) => {
+    setEditingAdvance(advance);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (advance: AdvanceResponse) => {
+    setAdvanceToDelete(advance);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!advanceToDelete) return;
+
+    try {
+      setDeleting(true);
+      await advanceService.deleteAdvance(advanceToDelete.id);
+
+      setCurrentAdvances((prev) =>
+        prev.filter((a) => a.id !== advanceToDelete.id)
+      );
+
+      toast.success('Adelanto eliminado', {
+        description: (
+          <p className="text-slate-700 select-none">
+            El adelanto fue eliminado correctamente
+          </p>
+        ),
+      });
+    } catch (error) {
+      console.error('Error al eliminar adelanto:', error);
+      toast.error('Error al eliminar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            No se pudo eliminar el adelanto
+          </p>
+        ),
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setAdvanceToDelete(null);
+    }
+  };
+
+  const handleDialogChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setEditingAdvance(null);
+    }
   };
 
   const toggleMonth = async (monthsAgo: number) => {
@@ -143,6 +222,59 @@ export function AdvanceSection({
     0
   );
 
+  const renderAdvanceCard = (
+    advance: AdvanceResponse,
+    isCurrentMonth: boolean = true
+  ) => (
+    <div
+      key={advance.id}
+      className="flex items-center justify-between p-3 border rounded-lg"
+    >
+      <div className="flex items-center gap-3 flex-1">
+        <DollarSign className="h-5 w-5 text-green-600 flex-shrink-0" />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="secondary">{advance.amount} Bs</Badge>
+          </div>
+          <p className="text-sm font-medium">
+            {formatDate(advance.advanceDate)}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+        <div className="text-right">
+          <p className="text-sm font-semibold text-green-600">
+            {formatCurrency(advance.amount)}
+          </p>
+        </div>
+
+        {isCurrentMonth && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleEdit(advance)}
+              title="Editar"
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleDeleteClick(advance)}
+              title="Eliminar"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <section className="flex flex-col gap-6 p-4">
@@ -157,13 +289,44 @@ export function AdvanceSection({
   return (
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
-        title="Registrar Adelanto"
-        description="Registra un nuevo adelanto para el empleado"
+        title={editingAdvance ? 'Editar Adelanto' : 'Registrar Adelanto'}
+        description={
+          editingAdvance
+            ? 'Modifica los datos del adelanto'
+            : 'Registra un nuevo adelanto para el empleado'
+        }
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleDialogChange}
       >
-        <AdvanceForm employeeId={employeeId} onSave={handleAdvanceCreated} />
+        <AdvanceForm
+          employeeId={employeeId}
+          advance={editingAdvance || undefined}
+          onSave={handleAdvanceSaved}
+          onCancel={() => handleDialogChange(false)}
+        />
       </ReusableDialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El adelanto será eliminado
+              permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex justify-between">
         <div>
@@ -213,31 +376,7 @@ export function AdvanceSection({
           <Separator />
 
           <div className="space-y-3">
-            {currentAdvances.map((advance) => (
-              <div
-                key={advance.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  <DollarSign className="h-5 w-5 text-green-600 flex-shrink-0" />
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary">{advance.amount} Bs</Badge>
-                    </div>
-                    <p className="text-sm font-medium">
-                      {formatDate(advance.advanceDate)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right flex-shrink-0 ml-2">
-                  <p className="text-sm font-semibold text-green-600">
-                    {formatCurrency(advance.amount)}
-                  </p>
-                </div>
-              </div>
-            ))}
+            {currentAdvances.map((advance) => renderAdvanceCard(advance, true))}
           </div>
         </section>
       ) : (
@@ -288,33 +427,9 @@ export function AdvanceSection({
                     </div>
                   ) : advances && advances.length > 0 ? (
                     <div className="space-y-3">
-                      {advances.map((advance) => (
-                        <div
-                          key={advance.id}
-                          className="flex items-center justify-between p-3 border rounded-lg"
-                        >
-                          <div className="flex items-center gap-3 flex-1">
-                            <DollarSign className="h-5 w-5 text-green-600 flex-shrink-0" />
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="secondary">
-                                  {advance.percentageAmount * 100}%
-                                </Badge>
-                              </div>
-                              <p className="text-sm font-medium">
-                                {formatDate(advance.advanceDate)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="text-right flex-shrink-0 ml-2">
-                            <p className="text-sm font-semibold text-green-600">
-                              {formatCurrency(advance.amount)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                      {advances.map((advance) =>
+                        renderAdvanceCard(advance, false)
+                      )}
                     </div>
                   ) : (
                     <p className="text-center text-muted-foreground p-4">
