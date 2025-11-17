@@ -104,7 +104,17 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
       form.setValue('positionId', '');
       return;
     }
-    positionService.getPositions().then(setPositions);
+    positionService
+      .getPositionsByDepartment(selectedDepartmentId)
+      .then((positions) => {
+        console.log(
+          'Fetched positions:',
+          positions,
+          'departmentId:',
+          selectedDepartmentId
+        );
+        setPositions(positions);
+      });
   }, [selectedDepartmentId, form]);
 
   useEffect(() => {
