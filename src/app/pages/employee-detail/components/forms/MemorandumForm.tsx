@@ -39,7 +39,9 @@ const memorandumService = new MemorandumService();
 
 const formSchema = z.object({
   type: z.string().min(1, 'El tipo es obligatorio'),
-  description: z.string().min(1, 'La descripción es obligatoria'),
+  description: z.string()
+    .min(1, 'La descripción es obligatoria')
+    .max(1000, 'La descripción no puede exceder los 1000 caracteres'),
   memorandumDate: z.date({
     error: 'La fecha es obligatoria',
   }),

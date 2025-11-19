@@ -9,15 +9,18 @@ export interface PaymentDetailsResponse {
   period: number;
   baseSalary: number;
   workedDays: number;
+  workingDaysPerMonth: number;
   basicEarnings: number;
   seniorityYears: number;
   seniorityIncreasePercentage: number;
   seniorityBonus: number;
-  grossAmount: number;
+  otherBonuses: number;
+  totalBonuses: number;
+  totalEarnings: number;
   deductionAfpPercentage: number;
   deductionAfp: number;
   deductions: PaymentDeductionResponse[];
-  totalDeduction: number;
+  totalDeductions: number;
   netAmount: number;
 }
 

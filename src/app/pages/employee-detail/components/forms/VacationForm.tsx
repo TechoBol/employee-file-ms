@@ -36,7 +36,10 @@ const formSchema = z
     endDate: z.date({
       error: 'La fecha de fin es obligatoria',
     }),
-    notes: z.string().optional(),
+    notes: z
+      .string()
+      .max(500, 'La nota no puede exceder los 500 caracteres')
+      .optional(),
   })
   .refine(
     (data) => {

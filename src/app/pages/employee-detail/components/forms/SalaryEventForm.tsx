@@ -41,6 +41,7 @@ const formSchema = z
     description: z
       .string()
       .trim()
+      .max(250, 'La descripción no puede exceder los 250 caracteres')
       .optional()
       .transform((v) => (v === '' ? undefined : v)),
     amount: z.number().positive('El monto debe ser mayor a 0'),

@@ -139,11 +139,7 @@ export default function PayrollsPage() {
 
   useEffect(() => {
     fetchCurrentPayrolls();
-  }, [
-    currentPagination.pageIndex,
-    currentPagination.pageSize,
-    currentSearchValue,
-  ]);
+  }, [currentPagination.pageIndex, currentPagination.pageSize]);
 
   useEffect(() => {
     fetchHistoricalPayments();
@@ -151,7 +147,6 @@ export default function PayrollsPage() {
     historicalPagination.pageIndex,
     historicalPagination.pageSize,
     selectedPeriod,
-    historicalSearchValue,
   ]);
 
   const handleCurrentSearchChange = (search: string) => {
@@ -169,19 +164,45 @@ export default function PayrollsPage() {
     setHistoricalPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
+  // Filtrar datos actuales por búsqueda
+  const filteredCurrentData = currentData.filter((item) => {
+    if (!currentSearchValue) return true;
+    const search = currentSearchValue.toLowerCase();
+    const { firstName, lastName, ci, email } = item.employee;
+    return (
+      firstName.toLowerCase().includes(search) ||
+      lastName.toLowerCase().includes(search) ||
+      ci.toLowerCase().includes(search) ||
+      email.toLowerCase().includes(search)
+    );
+  });
+
+  // Filtrar datos históricos por búsqueda
+  const filteredHistoricalData = historicalData.filter((item) => {
+    if (!historicalSearchValue) return true;
+    const search = historicalSearchValue.toLowerCase();
+    const { firstName, lastName, ci, email } = item.employee;
+    return (
+      firstName.toLowerCase().includes(search) ||
+      lastName.toLowerCase().includes(search) ||
+      ci.toLowerCase().includes(search) ||
+      email.toLowerCase().includes(search)
+    );
+  });
+
   return (
-    <div className="container mx-auto">
-      <div className="flex items-center justify-between mb-4">
+    <div className="container mx-auto py-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Nóminas</h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-1">
             Gestiona y visualiza las nóminas de los empleados
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="current" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
           <TabsTrigger value="current">Mes Actual</TabsTrigger>
           <TabsTrigger value="historical">Meses Anteriores</TabsTrigger>
         </TabsList>
@@ -189,36 +210,62 @@ export default function PayrollsPage() {
         {/* Mes Actual */}
         <TabsContent value="current" className="space-y-4">
           {currentError ? (
-            <div className="text-center p-8 border rounded-xl">
-              <p className="text-destructive mb-4">Error: {currentError}</p>
-              <Button onClick={fetchCurrentPayrolls}>
+            <div className="text-center p-8 border rounded-xl bg-destructive/5">
+              <p className="text-destructive mb-4 font-medium">
+                Error: {currentError}
+              </p>
+              <Button onClick={fetchCurrentPayrolls} variant="outline">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Reintentar
               </Button>
             </div>
           ) : (
             <>
-              <SearchInput
-                value={currentSearchValue}
-                onChange={handleCurrentSearchChange}
-                placeholder="Buscar por nombre, CI o email..."
-                disabled={currentLoading}
-                className="w-full sm:max-w-sm"
-              />
+              <div className="flex items-center justify-between">
+                <SearchInput
+                  value={currentSearchValue}
+                  onChange={handleCurrentSearchChange}
+                  placeholder="Buscar por nombre, CI o email..."
+                  disabled={currentLoading}
+                  className="w-full sm:max-w-sm"
+                />
+                <Button
+                  onClick={fetchCurrentPayrolls}
+                  variant="outline"
+                  size="icon"
+                  disabled={currentLoading}
+                  className="ml-2"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${
+                      currentLoading ? 'animate-spin' : ''
+                    }`}
+                  />
+                </Button>
+              </div>
 
-              <DataTable
-                columns={currentColumns}
-                data={currentData}
-                pageCount={currentPageCount}
-                pageIndex={currentPagination.pageIndex}
-                pageSize={currentPagination.pageSize}
-                onPaginationChange={setCurrentPagination}
-                loading={currentLoading}
-                showPagination={true}
-                pageSizeOptions={[5, 10, 20, 50]}
-                noResultsMessage="No se encontraron nóminas"
-                loadingMessage="Cargando nóminas..."
-              />
+              <div className="rounded-lg border bg-card">
+                <DataTable
+                  columns={currentColumns}
+                  data={filteredCurrentData}
+                  pageCount={currentPageCount}
+                  pageIndex={currentPagination.pageIndex}
+                  pageSize={currentPagination.pageSize}
+                  onPaginationChange={setCurrentPagination}
+                  loading={currentLoading}
+                  showPagination={true}
+                  pageSizeOptions={[5, 10, 20, 50]}
+                  noResultsMessage="No se encontraron nóminas"
+                  loadingMessage="Cargando nóminas..."
+                />
+              </div>
+
+              {!currentLoading && filteredCurrentData.length > 0 && (
+                <div className="text-sm text-muted-foreground text-center">
+                  Mostrando {filteredCurrentData.length} de {currentData.length}{' '}
+                  empleados
+                </div>
+              )}
             </>
           )}
         </TabsContent>
@@ -226,31 +273,48 @@ export default function PayrollsPage() {
         {/* Meses Anteriores */}
         <TabsContent value="historical" className="space-y-4">
           {historicalError ? (
-            <div className="text-center p-8 border rounded-xl">
-              <p className="text-destructive mb-4">Error: {historicalError}</p>
-              <Button onClick={fetchHistoricalPayments}>
+            <div className="text-center p-8 border rounded-xl bg-destructive/5">
+              <p className="text-destructive mb-4 font-medium">
+                Error: {historicalError}
+              </p>
+              <Button onClick={fetchHistoricalPayments} variant="outline">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Reintentar
               </Button>
             </div>
           ) : (
             <>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Select
-                  value={selectedPeriod}
-                  onValueChange={handlePeriodChange}
-                >
-                  <SelectTrigger className="w-full sm:w-[280px]">
-                    <SelectValue placeholder="Seleccionar período" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {periods.map((period) => (
-                      <SelectItem key={period.value} value={period.value}>
-                        {period.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Select
+                    value={selectedPeriod}
+                    onValueChange={handlePeriodChange}
+                    disabled={historicalLoading}
+                  >
+                    <SelectTrigger className="w-full sm:w-[280px]">
+                      <SelectValue placeholder="Seleccionar período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {periods.map((period) => (
+                        <SelectItem key={period.value} value={period.value}>
+                          {period.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={fetchHistoricalPayments}
+                    variant="outline"
+                    size="icon"
+                    disabled={historicalLoading}
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${
+                        historicalLoading ? 'animate-spin' : ''
+                      }`}
+                    />
+                  </Button>
+                </div>
 
                 <SearchInput
                   value={historicalSearchValue}
@@ -261,19 +325,31 @@ export default function PayrollsPage() {
                 />
               </div>
 
-              <DataTable
-                columns={historicalColumns}
-                data={historicalData}
-                pageCount={historicalPageCount}
-                pageIndex={historicalPagination.pageIndex}
-                pageSize={historicalPagination.pageSize}
-                onPaginationChange={setHistoricalPagination}
-                loading={historicalLoading}
-                showPagination={true}
-                pageSizeOptions={[5, 10, 20, 50]}
-                noResultsMessage="No se encontraron pagos para este período"
-                loadingMessage="Cargando pagos..."
-              />
+              <div className="rounded-lg border bg-card">
+                <DataTable
+                  columns={historicalColumns}
+                  data={filteredHistoricalData}
+                  pageCount={historicalPageCount}
+                  pageIndex={historicalPagination.pageIndex}
+                  pageSize={historicalPagination.pageSize}
+                  onPaginationChange={setHistoricalPagination}
+                  loading={historicalLoading}
+                  showPagination={true}
+                  pageSizeOptions={[5, 10, 20, 50]}
+                  noResultsMessage="No se encontraron pagos para este período"
+                  loadingMessage="Cargando pagos..."
+                />
+              </div>
+
+              {!historicalLoading && filteredHistoricalData.length > 0 && (
+                <div className="text-sm text-muted-foreground text-center">
+                  Mostrando {filteredHistoricalData.length} de{' '}
+                  {historicalData.length} empleados
+                  {' • '}
+                  Período:{' '}
+                  {periods.find((p) => p.value === selectedPeriod)?.label}
+                </div>
+              )}
             </>
           )}
         </TabsContent>

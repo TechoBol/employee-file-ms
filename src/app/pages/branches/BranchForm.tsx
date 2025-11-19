@@ -39,9 +39,15 @@ const BOLIVIAN_CITIES = [
 const branchService = new BranchService();
 
 const formSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  description: z.string().min(1, 'La descripción es obligatoria'),
-  location: z.string().min(2, 'La ubicación es obligatoria'),
+  name: z.string()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(100, 'El nombre no puede exceder los 100 caracteres'),
+  description: z.string()
+    .min(1, 'La descripción es obligatoria')
+    .max(250, 'La descripción no puede exceder los 250 caracteres'),
+  location: z.string()
+    .min(2, 'La ubicación es obligatoria')
+    .max(180, 'La ubicación no puede exceder los 180 caracteres'),
   city: z.string().min(1, 'La ciudad es obligatoria'),
   country: z.literal('Bolivia', { message: 'El país debe ser Bolivia' }),
 });

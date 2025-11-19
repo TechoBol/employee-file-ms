@@ -314,7 +314,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
         </div>
 
         {/* Otras deducciones */}
-        {payment.totalDeduction > 0 && (
+        {payment.totalDeductions > 0 && (
           <>
             <Separator className="my-2" />
             <span className="text-sm font-medium text-red-600">

@@ -39,12 +39,22 @@ import { BranchService } from '@/rest-client/services/BranchService';
 import type { BranchResponse } from '@/rest-client/interface/response/BranchResponse';
 
 const formSchema = z.object({
-  firstName: z.string().min(2, 'Nombre requerido'),
-  lastName: z.string().min(2, 'Apellido requerido'),
-  ci: z.string().min(5, 'CI requerido'),
+  firstName: z.string()
+    .min(2, 'Nombre requerido')
+    .max(150, 'El nombre no puede exceder los 150 caracteres'),
+  lastName: z.string()
+    .min(2, 'Apellido requerido')
+    .max(150, 'El apellido no puede exceder los 150 caracteres'),
+  ci: z.string()
+    .min(5, 'CI requerido')
+    .max(15, 'El CI no puede exceder los 20 caracteres'),
   email: z.string().email('Correo inválido'),
-  phone: z.string().min(7, 'Teléfono requerido'),
-  address: z.string().min(5, 'Dirección requerida'),
+  phone: z.string()
+    .min(7, 'Teléfono requerido')
+    .max(20, 'El teléfono no puede exceder los 20 caracteres'),
+  address: z.string()
+    .min(5, 'Dirección requerida')
+    .max(180, 'La dirección no puede exceder los 180 caracteres'),
   birthDate: z.date({ error: 'Fecha de nacimiento requerida' }),
   hireDate: z.date({ error: 'Fecha de contratación requerida' }),
   type: z.enum(['FULL_TIME', 'CONSULTANT'] as const, {

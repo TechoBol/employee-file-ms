@@ -57,8 +57,14 @@ const formSchema = z.object({
     message: 'La fecha es obligatoria',
   }),
   duration: z.nativeEnum(PermissionDuration),
-  reason: z.string().optional(),
-  description: z.string().optional(),
+  reason: z
+    .string()
+    .max(150, 'La razón no puede exceder 150 caracteres')
+    .optional(),
+  description: z
+    .string()
+    .max(250, 'La descripción no puede exceder 250 caracteres')
+    .optional(),
 });
 
 type AbsencePermissionFormValues = z.infer<typeof formSchema>;
