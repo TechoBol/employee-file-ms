@@ -16,4 +16,8 @@ export class PaymentService {
       `${this.BASE_URL}/periods/${period}?page=${page}&size=${size}`
     );
   }
+
+  async reprocessPayment(period: number): Promise<void> {
+    return httpClient.post<void>(`${this.BASE_URL}/periods/${period}/reprocess`);
+  }
 }
