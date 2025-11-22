@@ -70,12 +70,12 @@ const formatMonthYear = (date: Date) => {
   });
 };
 
-const getAbsenceTypeFromDescription = (
-  description: string
-): AbsencePermissionType => {
-  return description.toLowerCase().includes('falta')
-    ? AbsencePermissionType.ABSENCE
-    : AbsencePermissionType.PERMISSION;
+const isPermission = (description: string): boolean => {
+  return description.toLowerCase().includes('permiso');
+};
+
+const isAbsence = (description: string): boolean => {
+  return description.toLowerCase().includes('falta');
 };
 
 const getDurationFromDescription = (
@@ -264,13 +264,11 @@ export function AbsencePermissionSection({
   };
 
   const permissions = absenceEvents.filter(
-    (event) =>
-      event.description && event.description.toLowerCase().includes('permiso')
+    (event) => event.description && isPermission(event.description)
   );
 
   const absences = absenceEvents.filter(
-    (event) =>
-      event.description && event.description.toLowerCase().includes('falta')
+    (event) => event.description && isAbsence(event.description)
   );
 
   const totalDeductions = absenceEvents.reduce(
@@ -282,9 +280,10 @@ export function AbsencePermissionSection({
     event: AbsenceResponse,
     isCurrentMonth: boolean = true
   ) => {
-    const isAbsence = getAbsenceTypeFromDescription(event.description || '');
-    const isPermission = !isAbsence;
-    const duration = isPermission
+    const eventIsPermission =
+      event.description && isPermission(event.description);
+    const eventIsAbsence = event.description && isAbsence(event.description);
+    const duration = eventIsPermission
       ? getDurationFromDescription(event.description || '')
       : null;
 
@@ -294,17 +293,21 @@ export function AbsencePermissionSection({
         className="flex items-center justify-between p-3 border rounded-lg"
       >
         <div className="flex items-center gap-3 flex-1">
-          {isAbsence ? (
+          {eventIsAbsence ? (
             <CalendarX className="h-5 w-5 text-red-600 flex-shrink-0" />
           ) : (
-            <Clock className="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <Clock className="h-5 w-5 text-orange-600 flex-shrink-0" />
           )}
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant={isAbsence ? 'destructive' : 'secondary'}>
-                {isAbsence ? 'Falta' : 'Permiso'}
-              </Badge>
+              {eventIsAbsence ? (
+                <Badge variant="destructive">Falta</Badge>
+              ) : (
+                <Badge className="bg-orange-500 hover:bg-orange-600 text-white">
+                  Permiso
+                </Badge>
+              )}
               {duration && (
                 <Badge variant="outline">
                   {duration === PermissionDuration.HALF_DAY
@@ -426,7 +429,7 @@ export function AbsencePermissionSection({
         <Card className="rounded-2xl shadow-md">
           <CardContent className="p-6 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-600" />
+              <Clock className="h-4 w-4 text-orange-600" />
               <span className="text-sm text-muted-foreground">Permisos</span>
             </div>
             <span className="text-2xl font-semibold">{permissions.length}</span>

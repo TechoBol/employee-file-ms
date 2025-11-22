@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Calculator } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DataTable } from '@/app/shared/components/DataTable';
 import { SearchInput } from '@/app/shared/components/SearchInput';
@@ -16,6 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { currentColumns, historicalColumns } from './columns';
 
 const payrollService = new PayrollService();
@@ -81,6 +92,8 @@ export default function PayrollsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>(
     getPeriodInfo(1).period.toString()
   );
+  const [reprocessing, setReprocessing] = useState(false);
+  const [showReprocessDialog, setShowReprocessDialog] = useState(false);
 
   const periods = generatePeriods();
 
@@ -162,6 +175,43 @@ export default function PayrollsPage() {
   const handlePeriodChange = (value: string) => {
     setSelectedPeriod(value);
     setHistoricalPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const handleReprocessClick = () => {
+    setShowReprocessDialog(true);
+  };
+
+  const handleReprocessConfirm = async () => {
+    try {
+      setReprocessing(true);
+      setShowReprocessDialog(false);
+
+      await paymentService.reprocessPayment(parseInt(selectedPeriod));
+
+      toast.success('Reprocesamiento completado', {
+        description: (
+          <p className="text-slate-700 select-none">
+            Los pagos del período se han recalculado exitosamente
+          </p>
+        ),
+      });
+
+      // Recargar los datos después del reprocesamiento
+      await fetchHistoricalPayments();
+    } catch (error) {
+      console.error('Error al reprocesar pagos:', error);
+      toast.error('Error al reprocesar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            {error instanceof Error
+              ? error.message
+              : 'No se pudo reprocesar el período'}
+          </p>
+        ),
+      });
+    } finally {
+      setReprocessing(false);
+    }
   };
 
   // Filtrar datos actuales por búsqueda
@@ -272,6 +322,34 @@ export default function PayrollsPage() {
 
         {/* Meses Anteriores */}
         <TabsContent value="historical" className="space-y-4">
+          <AlertDialog
+            open={showReprocessDialog}
+            onOpenChange={setShowReprocessDialog}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Recalcular período?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción recalculará todos los pagos del período seleccionado (
+                  {periods.find((p) => p.value === selectedPeriod)?.label}
+                  ). Los valores actuales serán reemplazados. ¿Deseas continuar?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={reprocessing}>
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleReprocessConfirm}
+                  disabled={reprocessing}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {reprocessing ? 'Procesando...' : 'Recalcular'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           {historicalError ? (
             <div className="text-center p-8 border rounded-xl bg-destructive/5">
               <p className="text-destructive mb-4 font-medium">
@@ -289,7 +367,7 @@ export default function PayrollsPage() {
                   <Select
                     value={selectedPeriod}
                     onValueChange={handlePeriodChange}
-                    disabled={historicalLoading}
+                    disabled={historicalLoading || reprocessing}
                   >
                     <SelectTrigger className="w-full sm:w-[280px]">
                       <SelectValue placeholder="Seleccionar período" />
@@ -303,10 +381,23 @@ export default function PayrollsPage() {
                     </SelectContent>
                   </Select>
                   <Button
+                    onClick={handleReprocessClick}
+                    variant="outline"
+                    disabled={historicalLoading || reprocessing}
+                    title="Recalcular período"
+                  >
+                    <Calculator
+                      className={`h-4 w-4 ${reprocessing ? 'animate-pulse' : ''}`}
+                    />
+                    <span className="ml-2 hidden sm:inline">
+                      {reprocessing ? 'Procesando...' : 'Recalcular'}
+                    </span>
+                  </Button>
+                  <Button
                     onClick={fetchHistoricalPayments}
                     variant="outline"
                     size="icon"
-                    disabled={historicalLoading}
+                    disabled={historicalLoading || reprocessing}
                   >
                     <RefreshCw
                       className={`h-4 w-4 ${
@@ -320,7 +411,7 @@ export default function PayrollsPage() {
                   value={historicalSearchValue}
                   onChange={handleHistoricalSearchChange}
                   placeholder="Buscar por nombre, CI o email..."
-                  disabled={historicalLoading}
+                  disabled={historicalLoading || reprocessing}
                   className="w-full sm:max-w-sm"
                 />
               </div>

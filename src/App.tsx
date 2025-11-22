@@ -12,7 +12,7 @@ import PayrollsPage from './app/pages/payrolls/PayrollPage';
 
 function App() {
   return (
-    <>
+    <div vaul-drawer-wrapper="" className="bg-background">
       <Routes>
         <Route element={<RootLayout />}>
           <Route path="/employees" element={<EmployeesPage />} />
@@ -29,7 +29,7 @@ function App() {
         </Route>
       </Routes>
       <Toaster />
-    </>
+    </div>
   );
 }
 
