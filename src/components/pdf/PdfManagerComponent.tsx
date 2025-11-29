@@ -6,10 +6,6 @@ import { Download, Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { FileWithUrlResponse } from '@/rest-client/interface/response/FileResponse';
 
-// const transformUrl = (url: string): string => {
-//   return url.replace('http://localhost:9001', '/minio-proxy');
-// };
-
 const PREDEFINED_SECTIONS = [
   { key: 'informacion-personal', title: 'Información Personal' },
   { key: 'permisos-faltas', title: 'Permisos y Faltas' },
@@ -21,36 +17,57 @@ const PREDEFINED_SECTIONS = [
 const mapFileToStaticSections = (
   fileData: FileWithUrlResponse
 ): StaticSectionConfig[] => {
-  const existingSectionsMap = new Map(
-    fileData.sections.map((section) => [
-      section.section?.toLowerCase() || section.originalName.toLowerCase(),
-      {
-        id: section.id,
-        title: section.section || section.originalName,
-        // pdfUrl: transformUrl(section.url),
-        pdfUrl: section.url,
-        includeSeparatorPage: false,
-      },
+  // Crear mapa de secciones predefinidas (título en minúsculas -> key)
+  const predefinedMap = new Map(
+    PREDEFINED_SECTIONS.map((section) => [
+      section.title.toLowerCase(),
+      section.key,
     ])
   );
 
-  return PREDEFINED_SECTIONS.map((predefinedSection) => {
-    const existingSection = existingSectionsMap.get(
-      predefinedSection.title.toLowerCase()
-    );
+  // Crear mapa de secciones existentes
+  const existingSectionsMap = new Map(
+    fileData.sections.map((section) => {
+      const sectionTitle = section.section || section.originalName;
+      return [
+        sectionTitle.toLowerCase(),
+        {
+          id: section.id,
+          title: sectionTitle,
+          pdfUrl: section.url,
+          includeSeparatorPage: false,
+        },
+      ];
+    })
+  );
 
-    if (existingSection) {
-      return existingSection;
+  // 1. Primero agregar las secciones predefinidas
+  const sections: StaticSectionConfig[] = PREDEFINED_SECTIONS.map(
+    (predefinedSection) => {
+      const existingSection = existingSectionsMap.get(
+        predefinedSection.title.toLowerCase()
+      );
+
+      if (existingSection) {
+        // Marcar como procesada
+        existingSectionsMap.delete(predefinedSection.title.toLowerCase());
+        return existingSection;
+      }
+
+      // Si no existe, crear una sección vacía
+      return {
+        id: `empty-${predefinedSection.key}`,
+        title: predefinedSection.title,
+        pdfUrl: undefined,
+        includeSeparatorPage: false,
+      };
     }
+  );
 
-    // Si no existe, crear una sección vacía
-    return {
-      id: `empty-${predefinedSection.key}`,
-      title: predefinedSection.title,
-      pdfUrl: undefined, // Sin PDF
-      includeSeparatorPage: false,
-    };
-  });
+  // 2. Agregar las secciones adicionales que no están en las predefinidas
+  const additionalSections = Array.from(existingSectionsMap.values());
+
+  return [...sections, ...additionalSections];
 };
 
 interface PdfManagerComponentProps {
@@ -120,7 +137,9 @@ export const PdfManagerComponent = ({
     const companyId = localStorage.getItem('company_id');
 
     const result = await pdfMergeRef.current.uploadSectionsToEndpoint({
-      url: `${import.meta.env.VITE_API_URL}files/employees/${targetEmployeeId}`,
+      url: `${
+        import.meta.env.VITE_API_URL
+      }/files/employees/${targetEmployeeId}`,
       headers: {
         'X-COMPANY-ID': companyId!,
       },

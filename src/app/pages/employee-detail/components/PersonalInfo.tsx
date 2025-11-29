@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/drawer';
 import type { FileWithUrlResponse } from '@/rest-client/interface/response/FileResponse';
 import { PdfManagerComponent } from '@/components/pdf/PdfManagerComponent';
+import { PdfViewerComponent } from '@/components/pdf/PdfViewerComponent';
 
 type DialogContentType = 'EDIT_PERSONAL_INFO' | 'EMERGENCY_CONTACT' | null;
 
@@ -47,6 +48,7 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fileDrawerOpen, setFileDrawerOpen] = useState(false);
+  const [viewFileDrawerOpen, setViewFileDrawerOpen] = useState(false);
   const [fileData, setFileData] = useState<FileWithUrlResponse | null>(null);
   const [loadingFile, setLoadingFile] = useState(false);
 
@@ -87,6 +89,11 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
   const handleOpenFileDrawer = () => {
     fetchEmployeeFile();
     setFileDrawerOpen(true);
+  };
+
+  const handleOpenViewFileDrawer = () => {
+    fetchEmployeeFile();
+    setViewFileDrawerOpen(true);
   };
 
   const handleOpen = (type: DialogContentType) => {
@@ -208,6 +215,43 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
         </DrawerContent>
       </Drawer>
 
+      <Drawer
+        open={viewFileDrawerOpen}
+        onOpenChange={setViewFileDrawerOpen}
+        shouldScaleBackground={true}
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>File del Empleado</DrawerTitle>
+            <DrawerDescription>
+              Vista completa del file fusionado
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-y-auto flex-1">
+            {loadingFile ? (
+              <div className="flex items-center justify-center h-full">
+                <Skeleton className="h-96 w-full" />
+              </div>
+            ) : fileData ? (
+              <PdfViewerComponent
+                fileData={fileData}
+                showDownloadButton={true}
+                downloadFileName={`file-${employeeId}.pdf`}
+              />
+            ) : (
+              <div className="p-6 text-center text-gray-500">
+                No hay file disponible
+              </div>
+            )}
+          </div>
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline">Cerrar</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
       <div className="flex justify-between">
         <span className="text-xl font-bold">{PersonalInfoTexts.title}</span>
       </div>
@@ -243,7 +287,11 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
             <FolderOpen className="mr-2" />
             <span>Administrar File</span>
           </Button>
-          <Button variant="outline" className="w-48" disabled>
+          <Button
+            variant="outline"
+            className="w-48"
+            onClick={handleOpenViewFileDrawer}
+          >
             <FileText className="mr-2" />
             <span>Ver File</span>
           </Button>

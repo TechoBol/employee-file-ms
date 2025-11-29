@@ -24,7 +24,12 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { SortableDocument } from './SortableDocument';
 import { DocumentCard } from './DocumentCard';
 import { FileText } from 'lucide-react';
-import { DEFAULT_SEPARATOR_PAGE_SIZE, type DocumentGroup, type PagePreview, type StaticSectionConfig } from './Pdf.interface';
+import {
+  DEFAULT_SEPARATOR_PAGE_SIZE,
+  type DocumentGroup,
+  type PagePreview,
+  type StaticSectionConfig,
+} from './Pdf.interface';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
@@ -42,8 +47,28 @@ export interface PdfMergeReorderRef {
   uploadSectionsToEndpoint: (
     config: UploadSectionsConfig
   ) => Promise<UploadSectionsResult>;
+  getMergedPdfFromSections: (
+    config: MergeSectionsConfig
+  ) => Promise<MergeSectionsResult>;
   getDocuments: () => DocumentGroup[];
   getTotalPages: () => number;
+}
+
+export interface MergeSectionsConfig {
+  sections: Array<{
+    title: string;
+    pdfUrl: string;
+    includeSeparatorPage?: boolean;
+  }>;
+  includeCoverPage?: boolean;
+  coverPageTitle?: string;
+}
+
+export interface MergeSectionsResult {
+  success: boolean;
+  blob?: Blob;
+  error?: Error;
+  totalPages?: number;
 }
 
 export interface UploadSectionsConfig {
@@ -453,7 +478,9 @@ export const PdfMergeReorder = forwardRef<
         }
 
         const bytes = await merged.save();
-        const blob = new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], { type: 'application/pdf' });
+        const blob = new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], {
+          type: 'application/pdf',
+        });
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -504,7 +531,10 @@ export const PdfMergeReorder = forwardRef<
             }
 
             const bytes = await sectionPdf.save();
-            const blob = new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], { type: 'application/pdf' });
+            const blob = new Blob(
+              [new Uint8Array(bytes).buffer as ArrayBuffer],
+              { type: 'application/pdf' }
+            );
 
             exports.push({
               sectionId: doc.id,
@@ -560,7 +590,10 @@ export const PdfMergeReorder = forwardRef<
             const emptyPdf = await PDFDocument.create();
             emptyPdf.addPage();
             const bytes = await emptyPdf.save();
-            const blob = new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], { type: 'application/pdf' });
+            const blob = new Blob(
+              [new Uint8Array(bytes).buffer as ArrayBuffer],
+              { type: 'application/pdf' }
+            );
             const file = new File([blob], `${doc.sectionTitle}.pdf`, {
               type: 'application/pdf',
             });
@@ -593,7 +626,9 @@ export const PdfMergeReorder = forwardRef<
           }
 
           const bytes = await sectionPdf.save();
-          const blob = new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], { type: 'application/pdf' });
+          const blob = new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], {
+            type: 'application/pdf',
+          });
           const file = new File([blob], `${doc.sectionTitle}.pdf`, {
             type: 'application/pdf',
           });
@@ -653,6 +688,97 @@ export const PdfMergeReorder = forwardRef<
       );
     };
 
+    const getMergedPdfFromSections = async (
+      config: MergeSectionsConfig
+    ): Promise<MergeSectionsResult> => {
+      onExportStart?.();
+
+      try {
+        const merged = await PDFDocument.create();
+        let totalPages = 0;
+
+        console.log('Merging sections:', config);
+        // Cover page opcional
+        if (config.includeCoverPage) {
+          const title =
+            config.coverPageTitle ||
+            new Date().toLocaleDateString('es-ES', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            });
+          await createSeparatorPage(merged, title, 48);
+          totalPages++;
+        }
+
+        // Procesar cada sección
+        for (const section of config.sections) {
+          try {
+            // Cargar PDF desde URL primero
+            const response = await fetch(section.pdfUrl);
+            if (!response.ok) {
+              console.error(
+                `Error fetching PDF from ${section.pdfUrl}: ${response.status}`
+              );
+              continue; // Saltar esta sección si falla
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+            // Página separadora de sección DESPUÉS de verificar que el PDF existe
+            if (section.includeSeparatorPage) {
+              await createSeparatorPage(merged, section.title);
+              totalPages++;
+            }
+
+            // Copiar todas las páginas del PDF
+            const pageCount = pdfDoc.getPageCount();
+            const copiedPages = await merged.copyPages(
+              pdfDoc,
+              Array.from({ length: pageCount }, (_, i) => i)
+            );
+
+            copiedPages.forEach((page) => {
+              merged.addPage(page);
+            });
+
+            totalPages += pageCount;
+          } catch (error) {
+            console.error(
+              `Error loading PDF for section "${section.title}":`,
+              error
+            );
+            // Continuar con las demás secciones
+          }
+        }
+
+        const bytes = await merged.save();
+        const blob = new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], {
+          type: 'application/pdf',
+        });
+
+        onExportEnd?.();
+
+        return {
+          success: true,
+          blob,
+          totalPages,
+        };
+      } catch (error) {
+        console.error('Error merging PDFs from sections:', error);
+        onExportError?.(
+          error instanceof Error ? error : new Error('Error merging PDFs')
+        );
+
+        return {
+          success: false,
+          error:
+            error instanceof Error ? error : new Error('Error merging PDFs'),
+        };
+      }
+    };
+
     // Exponer métodos al componente padre
     useImperativeHandle(ref, () => ({
       loadPdf,
@@ -662,6 +788,7 @@ export const PdfMergeReorder = forwardRef<
       exportMergedPdf,
       exportSectionsPdfs,
       uploadSectionsToEndpoint,
+      getMergedPdfFromSections,
       getDocuments: () => documents,
       getTotalPages,
     }));

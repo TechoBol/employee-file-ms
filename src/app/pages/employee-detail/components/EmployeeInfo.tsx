@@ -7,7 +7,6 @@ import { formatDate, formatDateHireDate } from '@/lib/formatters';
 import {
   Briefcase,
   Calendar,
-  Download,
   FileText,
   Mail,
   Phone,
@@ -26,6 +25,24 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
     console.log('Edit User saved:', newUser);
     setDialogOpen(false);
   };
+
+  //   const fetchEmployeeFile = async () => {
+  //   try {
+  //     setLoadingFile(true);
+  //     const response = await fileService.getEmployeeFiles(employeeId);
+  //     setFileData(response);
+  //   } catch (e) {
+  //     console.error('Error al cargar file del empleado:', e);
+  //     setFileData(null);
+  //   } finally {
+  //     setLoadingFile(false);
+  //   }
+  // };
+
+  // const handleOpenViewFileDrawer = () => {
+  //   fetchEmployeeFile();
+  //   setViewFileDrawerOpen(true);
+  // };
 
   return (
     <>
@@ -80,15 +97,48 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
                   <UserRound />
                   <span>{EmployeeDetailsTexts.edit}</span>
                 </Button>
-                <Button variant="outline" disabled>
+                {/* <Button variant="outline" disabled>
                   <FileText />
                   <span>Ver File</span>
-                </Button>
+                </Button> */}
               </section>
             </section>
           </section>
         </CardContent>
       </Card>
+
+      {/* <Drawer open={viewFileDrawerOpen} onOpenChange={setViewFileDrawerOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>File del Empleado</DrawerTitle>
+            <DrawerDescription>
+              Vista completa del file fusionado
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-y-auto flex-1">
+            {loadingFile ? (
+              <div className="flex items-center justify-center h-full">
+                <Skeleton className="h-96 w-full" />
+              </div>
+            ) : fileData ? (
+              <PdfViewerComponent
+                fileData={fileData}
+                showDownloadButton={true}
+                downloadFileName={`file-${employeeId}.pdf`}
+              />
+            ) : (
+              <div className="p-6 text-center text-gray-500">
+                No hay file disponible
+              </div>
+            )}
+          </div>
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline">Cerrar</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer> */}
     </>
   );
 }
