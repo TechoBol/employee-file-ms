@@ -1,6 +1,6 @@
 import { httpClient } from "../http-client";
 import type { Page } from "../interface/Page";
-import type { PaymentDetailsResponse, PaymentEmployeeResponse } from "../interface/response/PaymentResponse";
+import type { PaymentDetailsResponse, PaymentEmployeeResponse, PaymentSummaryResponse } from "../interface/response/PaymentResponse";
 
 export class PaymentService {
   private readonly BASE_URL: string = '/payments';
@@ -19,5 +19,9 @@ export class PaymentService {
 
   async reprocessPayment(period: number): Promise<void> {
     return httpClient.post<void>(`${this.BASE_URL}/periods/${period}/reprocess`);
+  }
+
+  async getAllPaymentsByPeriod(period: number): Promise<PaymentSummaryResponse> {
+    return httpClient.get<PaymentSummaryResponse>(`${this.BASE_URL}/periods/${period}/all`);
   }
 }

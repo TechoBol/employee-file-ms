@@ -28,3 +28,15 @@ export interface PayrollEmployeeResponse {
   employee: EmployeeResponse;
   payroll: PayrollResponse;
 }
+
+export interface PayrollTotals {
+  totalBonuses: number;
+  totalEarnings: number;
+  totalDeductions: number;
+  netAmount: number;
+}
+
+export interface PayrollSummaryResponse {
+  payrolls: PayrollEmployeeResponse[];
+  totals: PayrollTotals;
+}

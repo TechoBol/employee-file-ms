@@ -29,3 +29,15 @@ export interface PaymentDeductionResponse {
   qty: number;
   totalDeduction: number;
 }
+
+export interface PaymentTotals {
+  totalBonuses: number;
+  totalEarnings: number;
+  totalDeductions: number;
+  netAmount: number;
+}
+
+export interface PaymentSummaryResponse {
+  payments: PaymentEmployeeResponse[];
+  totals: PaymentTotals;
+}

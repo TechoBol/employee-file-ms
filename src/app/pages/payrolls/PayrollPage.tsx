@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react';
 import { DataTable } from '@/app/shared/components/DataTable';
 import { SearchInput } from '@/app/shared/components/SearchInput';
 import { PayrollService } from '@/rest-client/services/PayrollService';
-import type { PayrollEmployeeResponse } from '@/rest-client/interface/response/PayrollResponse';
-import type { PaginationState } from '@tanstack/react-table';
-import type { PaymentEmployeeResponse } from '@/rest-client/interface/response/PaymentResponse';
+import type { PayrollSummaryResponse } from '@/rest-client/interface/response/PayrollResponse';
+import type { PaymentSummaryResponse } from '@/rest-client/interface/response/PaymentResponse';
 import { PaymentService } from '@/rest-client/services/PaymentService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -28,6 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { currentColumns, historicalColumns } from './columns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const payrollService = new PayrollService();
 const paymentService = new PaymentService();
@@ -37,6 +37,14 @@ const formatMonthYear = (date: Date) => {
     year: 'numeric',
     month: 'long',
   });
+};
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('es-BO', {
+    style: 'currency',
+    currency: 'BOB',
+    minimumFractionDigits: 2,
+  }).format(amount);
 };
 
 const getPeriodInfo = (monthsAgo: number) => {
@@ -66,29 +74,16 @@ const generatePeriods = () => {
 
 export default function PayrollsPage() {
   // Estados para nóminas actuales
-  const [currentData, setCurrentData] = useState<PayrollEmployeeResponse[]>([]);
+  const [currentData, setCurrentData] = useState<PayrollSummaryResponse | null>(null);
   const [currentLoading, setCurrentLoading] = useState(false);
   const [currentError, setCurrentError] = useState<string | null>(null);
   const [currentSearchValue, setCurrentSearchValue] = useState('');
-  const [currentPageCount, setCurrentPageCount] = useState(0);
-  const [currentPagination, setCurrentPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
 
   // Estados para pagos históricos
-  const [historicalData, setHistoricalData] = useState<
-    PaymentEmployeeResponse[]
-  >([]);
+  const [historicalData, setHistoricalData] = useState<PaymentSummaryResponse | null>(null);
   const [historicalLoading, setHistoricalLoading] = useState(false);
   const [historicalError, setHistoricalError] = useState<string | null>(null);
   const [historicalSearchValue, setHistoricalSearchValue] = useState('');
-  const [historicalPageCount, setHistoricalPageCount] = useState(0);
-  const [historicalPagination, setHistoricalPagination] =
-    useState<PaginationState>({
-      pageIndex: 0,
-      pageSize: 10,
-    });
   const [selectedPeriod, setSelectedPeriod] = useState<string>(
     getPeriodInfo(1).period.toString()
   );
@@ -103,20 +98,14 @@ export default function PayrollsPage() {
     setCurrentError(null);
 
     try {
-      const result = await payrollService.getPayrolls(
-        currentPagination.pageIndex,
-        currentPagination.pageSize
-      );
-
-      setCurrentData(result.content);
-      setCurrentPageCount(result.page.totalPages);
+      const result = await payrollService.getAllPayrolls();
+      setCurrentData(result);
     } catch (err) {
       console.error('Error fetching payrolls:', err);
       setCurrentError(
         err instanceof Error ? err.message : 'Error al cargar las nóminas'
       );
-      setCurrentData([]);
-      setCurrentPageCount(0);
+      setCurrentData(null);
     } finally {
       setCurrentLoading(false);
     }
@@ -128,14 +117,10 @@ export default function PayrollsPage() {
     setHistoricalError(null);
 
     try {
-      const result = await paymentService.getPaymentsByPeriod(
-        parseInt(selectedPeriod),
-        historicalPagination.pageIndex,
-        historicalPagination.pageSize
+      const result = await paymentService.getAllPaymentsByPeriod(
+        parseInt(selectedPeriod)
       );
-
-      setHistoricalData(result.content);
-      setHistoricalPageCount(result.page.totalPages);
+      setHistoricalData(result);
     } catch (err) {
       console.error('Error fetching historical payments:', err);
       setHistoricalError(
@@ -143,8 +128,7 @@ export default function PayrollsPage() {
           ? err.message
           : 'Error al cargar los pagos históricos'
       );
-      setHistoricalData([]);
-      setHistoricalPageCount(0);
+      setHistoricalData(null);
     } finally {
       setHistoricalLoading(false);
     }
@@ -152,29 +136,22 @@ export default function PayrollsPage() {
 
   useEffect(() => {
     fetchCurrentPayrolls();
-  }, [currentPagination.pageIndex, currentPagination.pageSize]);
+  }, []);
 
   useEffect(() => {
     fetchHistoricalPayments();
-  }, [
-    historicalPagination.pageIndex,
-    historicalPagination.pageSize,
-    selectedPeriod,
-  ]);
+  }, [selectedPeriod]);
 
   const handleCurrentSearchChange = (search: string) => {
     setCurrentSearchValue(search);
-    setCurrentPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
   const handleHistoricalSearchChange = (search: string) => {
     setHistoricalSearchValue(search);
-    setHistoricalPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
   const handlePeriodChange = (value: string) => {
     setSelectedPeriod(value);
-    setHistoricalPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
   const handleReprocessClick = () => {
@@ -215,7 +192,7 @@ export default function PayrollsPage() {
   };
 
   // Filtrar datos actuales por búsqueda
-  const filteredCurrentData = currentData.filter((item) => {
+  const filteredCurrentData = currentData?.payrolls.filter((item) => {
     if (!currentSearchValue) return true;
     const search = currentSearchValue.toLowerCase();
     const { firstName, lastName, ci, email } = item.employee;
@@ -225,10 +202,10 @@ export default function PayrollsPage() {
       ci.toLowerCase().includes(search) ||
       email.toLowerCase().includes(search)
     );
-  });
+  }) ?? [];
 
   // Filtrar datos históricos por búsqueda
-  const filteredHistoricalData = historicalData.filter((item) => {
+  const filteredHistoricalData = historicalData?.payments.filter((item) => {
     if (!historicalSearchValue) return true;
     const search = historicalSearchValue.toLowerCase();
     const { firstName, lastName, ci, email } = item.employee;
@@ -238,7 +215,7 @@ export default function PayrollsPage() {
       ci.toLowerCase().includes(search) ||
       email.toLowerCase().includes(search)
     );
-  });
+  }) ?? [];
 
   return (
     <div className="container mx-auto py-6">
@@ -298,23 +275,62 @@ export default function PayrollsPage() {
                 <DataTable
                   columns={currentColumns}
                   data={filteredCurrentData}
-                  pageCount={currentPageCount}
-                  pageIndex={currentPagination.pageIndex}
-                  pageSize={currentPagination.pageSize}
-                  onPaginationChange={setCurrentPagination}
                   loading={currentLoading}
-                  showPagination={true}
-                  pageSizeOptions={[5, 10, 20, 50]}
+                  showPagination={false}
                   noResultsMessage="No se encontraron nóminas"
                   loadingMessage="Cargando nóminas..."
                 />
               </div>
 
-              {!currentLoading && filteredCurrentData.length > 0 && (
-                <div className="text-sm text-muted-foreground text-center">
-                  Mostrando {filteredCurrentData.length} de {currentData.length}{' '}
-                  empleados
-                </div>
+              {/* Totales */}
+              {currentData && !currentLoading && (
+                <Card className="border-2">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Totales Generales</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Total Bonos
+                        </p>
+                        <p className="text-xl font-bold text-green-600">
+                          {formatCurrency(currentData.totals.totalBonuses)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Total Ganado
+                        </p>
+                        <p className="text-xl font-bold text-green-700">
+                          {formatCurrency(currentData.totals.totalEarnings)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Total Descuentos
+                        </p>
+                        <p className="text-xl font-bold text-destructive">
+                          {formatCurrency(currentData.totals.totalDeductions)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Total Líquido Pagable
+                        </p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {formatCurrency(currentData.totals.netAmount)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Mostrando {filteredCurrentData.length} de{' '}
+                        {currentData.payrolls.length} empleados
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </>
           )}
@@ -420,26 +436,65 @@ export default function PayrollsPage() {
                 <DataTable
                   columns={historicalColumns}
                   data={filteredHistoricalData}
-                  pageCount={historicalPageCount}
-                  pageIndex={historicalPagination.pageIndex}
-                  pageSize={historicalPagination.pageSize}
-                  onPaginationChange={setHistoricalPagination}
                   loading={historicalLoading}
-                  showPagination={true}
-                  pageSizeOptions={[5, 10, 20, 50]}
+                  showPagination={false}
                   noResultsMessage="No se encontraron pagos para este período"
                   loadingMessage="Cargando pagos..."
                 />
               </div>
 
-              {!historicalLoading && filteredHistoricalData.length > 0 && (
-                <div className="text-sm text-muted-foreground text-center">
-                  Mostrando {filteredHistoricalData.length} de{' '}
-                  {historicalData.length} empleados
-                  {' • '}
-                  Período:{' '}
-                  {periods.find((p) => p.value === selectedPeriod)?.label}
-                </div>
+              {/* Totales */}
+              {historicalData && !historicalLoading && (
+                <Card className="border-2">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Totales Generales</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Total Bonos
+                        </p>
+                        <p className="text-xl font-bold text-green-600">
+                          {formatCurrency(historicalData.totals.totalBonuses)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Total Ganado
+                        </p>
+                        <p className="text-xl font-bold text-green-700">
+                          {formatCurrency(historicalData.totals.totalEarnings)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Total Descuentos
+                        </p>
+                        <p className="text-xl font-bold text-destructive">
+                          {formatCurrency(historicalData.totals.totalDeductions)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Total Líquido Pagable
+                        </p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {formatCurrency(historicalData.totals.netAmount)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Mostrando {filteredHistoricalData.length} de{' '}
+                        {historicalData.payments.length} empleados
+                        {' • '}
+                        Período:{' '}
+                        {periods.find((p) => p.value === selectedPeriod)?.label}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </>
           )}
