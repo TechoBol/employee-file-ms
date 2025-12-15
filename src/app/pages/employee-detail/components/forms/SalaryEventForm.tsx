@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const salaryEventService = new SalaryEventService();
@@ -81,9 +81,9 @@ export function SalaryEventForm({
       amount: salaryEvent?.amount || undefined,
       frequency: salaryEvent?.frequency || 'ONE_TIME',
       startDate: salaryEvent?.startDate
-        ? new Date(salaryEvent.startDate)
+        ? parseISO(salaryEvent.startDate)
         : undefined,
-      endDate: salaryEvent?.endDate ? new Date(salaryEvent.endDate) : undefined,
+      endDate: salaryEvent?.endDate ? parseISO(salaryEvent.endDate) : undefined,
     },
   });
 
@@ -94,9 +94,9 @@ export function SalaryEventForm({
         description: salaryEvent.description || '',
         amount: salaryEvent.amount,
         frequency: salaryEvent.frequency,
-        startDate: new Date(salaryEvent.startDate),
+        startDate: parseISO(salaryEvent.startDate),
         endDate: salaryEvent.endDate
-          ? new Date(salaryEvent.endDate)
+          ? parseISO(salaryEvent.endDate)
           : undefined,
       });
     }

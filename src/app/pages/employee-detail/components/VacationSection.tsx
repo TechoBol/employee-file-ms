@@ -28,18 +28,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { formatDate } from '@/lib/utils';
 
 type VacationSectionProps = {
   employeeId: string;
   employeeName?: string;
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
 };
 
 const formatMonthYear = (date: Date) => {

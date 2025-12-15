@@ -2,6 +2,7 @@ import type { PayrollEmployeeResponse } from '@/rest-client/interface/response/P
 import { Actions } from './Actions';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { PaymentEmployeeResponse } from '@/rest-client/interface/response/PaymentResponse';
+import { formatDate } from '@/lib/utils';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('es-BO', {
@@ -9,14 +10,6 @@ function formatCurrency(amount: number): string {
     currency: 'BOB',
     minimumFractionDigits: 2,
   }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('es-BO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
 }
 
 // Mapeo de tipos de deducciones a etiquetas en español
@@ -108,6 +101,8 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
     cell: ({ row }) => {
       const seniorityYears = row.original.payroll.seniorityYears;
       const seniorityBonus = row.original.payroll.seniorityBonus;
+      const seniorityPercentage =
+        row.original.payroll.seniorityIncreasePercentage;
       return (
         <div className="flex flex-col">
           <span className="text-sm font-medium">
@@ -115,6 +110,7 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
           </span>
           <span className="text-xs text-muted-foreground">
             {seniorityYears} {seniorityYears === 1 ? 'año' : 'años'}
+            {` (${seniorityPercentage}%)`}
           </span>
         </div>
       );

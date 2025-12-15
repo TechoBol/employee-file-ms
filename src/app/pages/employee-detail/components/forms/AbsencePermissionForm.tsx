@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -131,7 +131,7 @@ export function AbsencePermissionForm({
         parseAbsenceData(absence);
       form.reset({
         type,
-        date: new Date(absence.date),
+        date: parseISO(absence.date),
         duration,
         reason,
         description: additionalDesc,
@@ -310,7 +310,6 @@ export function AbsencePermissionForm({
                     disabled={(date) => {
                       // No permitir fechas futuras
                       const today = new Date();
-                      today.setHours(23, 59, 59, 999);
                       if (date > today) return true;
 
                       // No permitir fechas muy antiguas

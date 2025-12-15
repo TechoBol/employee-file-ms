@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -73,8 +73,8 @@ export function VacationForm({
   const form = useForm<VacationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      startDate: vacation?.startDate ? new Date(vacation.startDate) : undefined,
-      endDate: vacation?.endDate ? new Date(vacation.endDate) : undefined,
+      startDate: vacation?.startDate ? parseISO(vacation.startDate) : undefined,
+      endDate: vacation?.endDate ? parseISO(vacation.endDate) : undefined,
       notes: vacation?.notes || '',
     },
   });
@@ -82,8 +82,8 @@ export function VacationForm({
   useEffect(() => {
     if (vacation) {
       form.reset({
-        startDate: new Date(vacation.startDate),
-        endDate: new Date(vacation.endDate),
+        startDate: parseISO(vacation.startDate),
+        endDate: parseISO(vacation.endDate),
         notes: vacation.notes || '',
       });
     } else {
@@ -203,7 +203,6 @@ export function VacationForm({
 
                       // No permitir fechas futuras
                       const today = new Date();
-                      today.setHours(23, 59, 59, 999);
                       if (date > today) return true;
 
                       return false;

@@ -43,7 +43,7 @@ export function NavProjects({ projects }: NavProjectsProps) {
                 <span>{item.title}</span>
               </a>
             </SidebarMenuButton>
-            <DropdownMenu modal>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction showOnHover>
                   <MoreHorizontal />

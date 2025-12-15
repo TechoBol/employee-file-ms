@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { formatDate } from '@/lib/utils';
 
 export const AbsencePermissionType = {
   PERMISSION: 'PERMISSION',
@@ -54,14 +55,6 @@ const formatCurrency = (value: number) =>
     currency: 'BOB',
     minimumFractionDigits: 2,
   }).format(value);
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
 
 const formatMonthYear = (date: Date) => {
   return date.toLocaleDateString('es-BO', {

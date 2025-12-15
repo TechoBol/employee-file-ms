@@ -32,14 +32,15 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const memorandumService = new MemorandumService();
 
 const formSchema = z.object({
   type: z.string().min(1, 'El tipo es obligatorio'),
-  description: z.string()
+  description: z
+    .string()
     .min(1, 'La descripción es obligatoria')
     .max(1000, 'La descripción no puede exceder los 1000 caracteres'),
   memorandumDate: z.date({
@@ -72,7 +73,7 @@ export function MemorandumForm({
       type: memorandum?.type || '',
       description: memorandum?.description || '',
       memorandumDate: memorandum?.memorandumDate
-        ? new Date(memorandum.memorandumDate)
+        ? parseISO(memorandum.memorandumDate)
         : undefined,
       isPositive: memorandum?.isPositive ?? true,
     },
@@ -83,7 +84,7 @@ export function MemorandumForm({
       form.reset({
         type: memorandum.type,
         description: memorandum.description,
-        memorandumDate: new Date(memorandum.memorandumDate),
+        memorandumDate: parseISO(memorandum.memorandumDate),
         isPositive: memorandum.isPositive,
       });
     }
@@ -232,12 +233,9 @@ export function MemorandumForm({
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) => {
-                      // No permitir fechas futuras
                       const today = new Date();
-                      today.setHours(23, 59, 59, 999);
                       if (date > today) return true;
 
-                      // No permitir fechas muy antiguas
                       if (date < new Date('1900-01-01')) return true;
 
                       return false;

@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { BaseSalaryService } from '@/rest-client/services/BaseSalaryService';
 import type { BaseSalaryResponse } from '@/rest-client/interface/response/BaseSalaryResponse';
+import { parseISO } from 'date-fns';
 
 const baseSalaryService = new BaseSalaryService();
 
@@ -27,7 +28,7 @@ const formSchema = z.object({
       message: 'El monto debe ser un número mayor a 0',
     }),
   startDate: z.string().refine((date) => {
-    const parsedDate = new Date(date);
+    const parsedDate = parseISO(date);
     return !isNaN(parsedDate.getTime());
   }, 'Fecha inválida'),
 });
@@ -66,7 +67,7 @@ export function BaseSalaryForm({
     if (baseSalary) {
       form.reset({
         amount: baseSalary.amount.toString(),
-        startDate: baseSalary.startDate.split('T')[0], // Asegurarse de tener solo la fecha
+        startDate: baseSalary.startDate.split('T')[0],
       });
     } else {
       form.reset({

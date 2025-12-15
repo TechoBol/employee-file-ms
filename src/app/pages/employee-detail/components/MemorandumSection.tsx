@@ -19,6 +19,7 @@ import type { MemorandumResponse } from '@/rest-client/interface/response/Memora
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { MemorandumForm } from './forms/MemorandumForm';
 import { toast } from 'sonner';
+import { formatDate } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,14 +34,6 @@ import {
 type MemorandumSectionProps = {
   employeeId: string;
   employeeName?: string;
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
 };
 
 const formatMonthYear = (date: Date) => {

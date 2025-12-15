@@ -40,7 +40,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 
 type EmployeeDisassociationSectionProps = {
   employee: EmployeeResponse;
@@ -49,14 +49,6 @@ type EmployeeDisassociationSectionProps = {
 };
 
 const employeeService = new EmployeeService();
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
 
 const calculateDaysRemaining = (disassociatedAt: string): number => {
   const disassociatedDate = new Date(disassociatedAt);

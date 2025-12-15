@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -71,7 +71,7 @@ export function AdvanceForm({
     if (advance) {
       form.reset({
         amount: advance.amount,
-        advanceDate: new Date(advance.advanceDate),
+        advanceDate: parseISO(advance.advanceDate),
       });
     } else {
       form.reset({
@@ -203,13 +203,13 @@ export function AdvanceForm({
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
+                    autoFocus
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
                       date > new Date() || date < new Date('1900-01-01')
                     }
-                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
