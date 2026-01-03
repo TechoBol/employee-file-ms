@@ -1,7 +1,7 @@
 import { httpClient } from "../http-client";
 import type { Page } from "../interface/Page";
 import type { EmployeeSearchParams } from "../interface/request/EmployeeSearchParams";
-import type { PaymentDetailsResponse, PaymentEmployeeResponse, PaymentSummaryResponse } from "../interface/response/PaymentResponse";
+import type { PaymentByBranchResponse, PaymentDetailsResponse, PaymentEmployeeResponse, PaymentSummaryResponse } from "../interface/response/PaymentResponse";
 
 export class PaymentService {
   private readonly BASE_URL: string = '/payments';
@@ -54,5 +54,9 @@ export class PaymentService {
     }
 
     return httpClient.get<PaymentSummaryResponse>(`${this.BASE_URL}/periods/${period}/all?${params.toString()}`);
+  }
+
+  async getAllPaymentsByBranch(): Promise<PaymentByBranchResponse[]> {
+    return httpClient.get<PaymentByBranchResponse[]>(`${this.BASE_URL}/group-by-branch`);
   }
 }

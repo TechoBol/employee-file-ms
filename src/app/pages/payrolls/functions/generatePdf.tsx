@@ -243,7 +243,7 @@ export const generatePDF = (data: any[], totals: any, title: string, period?: st
     doc.setTextColor(100);
     doc.text(`Total de empleados: ${data.length}`, 14, finalY + 6);
 
-    const pageCount = doc.getNumberOfPages();
+    const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(7);

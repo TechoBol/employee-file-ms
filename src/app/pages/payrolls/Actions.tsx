@@ -13,10 +13,11 @@ import type {
   PayrollResponse,
   PayrollDeductionResponse,
 } from '@/rest-client/interface/response/PayrollResponse';
-import { Eye, Loader2, MoreHorizontal } from 'lucide-react';
+import { Eye, Loader2, MoreHorizontal, User } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { PayrollService } from '@/rest-client/services/PayrollService';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
+import { useNavigate } from 'react-router';
 
 const payrollService = new PayrollService();
 
@@ -41,6 +42,7 @@ export function Actions({
     null
   );
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleViewDetails = async () => {
     setOpen(true);
@@ -57,6 +59,10 @@ export function Actions({
       setLoading(false);
     }
   };
+
+  const handleViewEmployeeDetails = () => {
+    navigate(`/employees/${payrollEmployee.employee.id}`);
+  }
 
   // Organizar deducciones por tipo
   const deductionsByType = useMemo<DeductionsByType>(() => {
@@ -108,6 +114,10 @@ export function Actions({
           <DropdownMenuItem onSelect={handleViewDetails}>
             <Eye className="mr-2 h-4 w-4" />
             Ver detalles de nómina
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleViewEmployeeDetails}>
+            <User className="mr-2 h-4 w-4" />
+            Ver detalles de empleado
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

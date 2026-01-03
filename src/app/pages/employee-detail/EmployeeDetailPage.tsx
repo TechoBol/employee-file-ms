@@ -36,7 +36,7 @@ export function EmployeeDetailPage() {
       value: 'salary',
       label: EmployeeDetailsTexts.salary,
       content: employee?.hireDate ? (
-        <SalarySummary employeeId={employeeId!} />
+        <SalarySummary employeeId={employeeId!} isDisassociated={employee.isDisassociated} />
       ) : (
         <div className="text-red-600">Hire date not available.</div>
       ),

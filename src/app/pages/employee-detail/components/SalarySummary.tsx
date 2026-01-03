@@ -20,6 +20,7 @@ import { PaymentService } from '@/rest-client/services/PaymentService';
 
 type SalarySummaryProps = {
   employeeId: string;
+  isDisassociated: boolean;
 };
 
 const formatCurrency = (value: number) =>
@@ -59,7 +60,10 @@ type DeductionsByType = {
   [key: string]: PayrollDeductionResponse[] | PaymentDeductionResponse[];
 };
 
-export function SalarySummary({ employeeId }: SalarySummaryProps) {
+export function SalarySummary({
+  employeeId,
+  isDisassociated,
+}: SalarySummaryProps) {
   const [baseSalary, setBaseSalary] = useState<BaseSalaryResponse | null>(null);
   const [payroll, setPayroll] = useState<PayrollResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +86,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
 
         const [salary, payrollData] = await Promise.all([
           baseSalaryService.getBaseSalaryByEmployee(employeeId),
-          payrollService.getPayrollsByEmployeeId(employeeId),
+          payrollService.getPayrollsByEmployeeId(employeeId, isDisassociated),
         ]);
 
         setBaseSalary(salary);
@@ -151,7 +155,8 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
 
     try {
       const updatedPayroll = await payrollService.getPayrollsByEmployeeId(
-        employeeId
+        employeeId,
+        isDisassociated
       );
       setPayroll(updatedPayroll);
     } catch (err) {

@@ -1,12 +1,16 @@
 import { httpClient } from "../http-client";
 import type { EmployeeSearchParams } from "../interface/request/EmployeeSearchParams";
-import type { PayrollResponse, PayrollSummaryPageResponse, PayrollSummaryResponse } from "../interface/response/PayrollResponse";
+import type { PayrollByBranchResponse, PayrollResponse, PayrollSummaryPageResponse, PayrollSummaryResponse } from "../interface/response/PayrollResponse";
 
 export class PayrollService {
   private readonly BASE_URL: string = '/payrolls';
 
-  async getPayrollsByEmployeeId(employeeId: string): Promise<PayrollResponse> {
-    return httpClient.get<PayrollResponse>(`${this.BASE_URL}/calculate/employees/${employeeId}`);
+  async getPayrollsByEmployeeId(employeeId: string, useActualDate?: boolean): Promise<PayrollResponse> {
+    const params = new URLSearchParams();
+    if (useActualDate !== undefined) {
+      params.append('useActualDate', useActualDate.toString());
+    }
+    return httpClient.get<PayrollResponse>(`${this.BASE_URL}/calculate/employees/${employeeId}?${params.toString()}`);
   }
 
   async getPayrolls(page: number = 0, size: number = 10, searchParams?: EmployeeSearchParams): Promise<PayrollSummaryPageResponse> {
@@ -49,5 +53,9 @@ export class PayrollService {
 
   async getAllPayrolls(): Promise<PayrollSummaryResponse> {
     return httpClient.get<PayrollSummaryResponse>(`${this.BASE_URL}/calculate/all`);
+  }
+
+  async getAllPayrollsByBranch(): Promise<PayrollByBranchResponse[]> {
+    return httpClient.get<PayrollByBranchResponse[]>(`${this.BASE_URL}/calculate/all/group-by-branch`);
   }
 }

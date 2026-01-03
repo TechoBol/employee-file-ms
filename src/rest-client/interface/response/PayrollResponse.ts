@@ -50,3 +50,11 @@ export interface PayrollSummaryPageResponse {
   payrolls: Page<PayrollEmployeeResponse>;
   totals: PayrollTotals;
 }
+
+export interface PayrollByBranchResponse {
+  branchId: string;
+  branchName: string;
+  employeeCount: number;
+  PayrollEmployeeResponse: PayrollEmployeeResponse[];
+  totals: PayrollTotals;
+}

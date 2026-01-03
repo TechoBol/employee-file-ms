@@ -45,3 +45,11 @@ export interface PaymentSummaryResponse {
   payments: PaymentEmployeeResponse[];
   totals: PaymentTotals;
 }
+
+export interface PaymentByBranchResponse {
+  branchId: string;
+  branchName: string;
+  employeeCount: number;
+  payments: PaymentEmployeeResponse[];
+  totals: PaymentTotals;
+}
