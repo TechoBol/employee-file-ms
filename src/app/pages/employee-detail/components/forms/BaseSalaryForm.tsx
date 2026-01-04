@@ -23,9 +23,9 @@ const baseSalaryService = new BaseSalaryService();
 const formSchema = z.object({
   amount: z
     .string()
-    .min(1, 'El monto es obligatorio')
-    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-      message: 'El monto debe ser un número mayor a 0',
+    .min(0, 'El monto es obligatorio')
+    .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+      message: 'El monto debe ser un número mayor o igual a 0',
     }),
   startDate: z.string().refine((date) => {
     const parsedDate = parseISO(date);
