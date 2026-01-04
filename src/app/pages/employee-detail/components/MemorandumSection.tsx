@@ -39,7 +39,6 @@ type MemorandumSectionProps = {
   isDisassociated?: boolean;
 };
 
-// Función para determinar en qué mes está un memorándum
 const getMonthsAgoFromDate = (dateString: string): number => {
   const memorandumDate = new Date(dateString);
   const now = new Date();
@@ -139,10 +138,8 @@ export function MemorandumSection({
     }
     setDialogOpen(false);
 
-    // Recargar mes actual
     await fetchCurrentMemorandums();
 
-    // Determinar el mes del memorándum y recargar si no es mes actual
     const monthsAgo = getMonthsAgoFromDate(savedMemorandum.memorandumDate);
     if (monthsAgo > 0 && monthlyMemorandums.has(monthsAgo)) {
       await reloadMonth(monthsAgo);
@@ -178,10 +175,8 @@ export function MemorandumSection({
         ),
       });
 
-      // Recargar mes actual
       await fetchCurrentMemorandums();
 
-      // Determinar el mes del memorándum eliminado y recargar si no es mes actual
       const monthsAgo = getMonthsAgoFromDate(memorandumToDelete.memorandumDate);
       if (monthsAgo > 0 && monthlyMemorandums.has(monthsAgo)) {
         await reloadMonth(monthsAgo);

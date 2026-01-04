@@ -96,7 +96,6 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      {/* Tabla */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -164,7 +163,6 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination */}
       {showPagination && (
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center space-x-2">

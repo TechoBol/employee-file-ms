@@ -72,7 +72,6 @@ export default function DepartmentForm({
 
       if (isEditing && department) {
         console.log('Updating department:', department.id, values);
-        // Actualizar departamento existente
         result = await departmentService.patchDepartment(department.id, {
           ...values,
         });
@@ -85,7 +84,6 @@ export default function DepartmentForm({
           ),
         });
       } else {
-        // Crear nuevo departamento
         result = await departmentService.createDepartment({
           ...values,
         });

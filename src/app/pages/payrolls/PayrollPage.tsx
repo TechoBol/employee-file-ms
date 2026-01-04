@@ -55,8 +55,6 @@ const formatMonthYear = (date: Date) => {
 const getPeriodInfo = (monthsAgo: number, applyCutoff: boolean = true) => {
   const now = new Date();
 
-  // Aplicar lógica de cutoff: si estamos dentro de los primeros X días del mes,
-  // considerar el mes anterior como "mes actual"
   const adjustedMonthsAgo =
     applyCutoff && now.getDate() <= MONTH_CUTOFF_DAY
       ? monthsAgo + 1
@@ -89,7 +87,6 @@ const generatePeriods = (applyCutoff: boolean = true) => {
 };
 
 export default function PayrollsPage() {
-  // Estados para nóminas actuales
   const [currentData, setCurrentData] = useState<PayrollSummaryResponse | null>(
     null
   );
@@ -103,7 +100,6 @@ export default function PayrollsPage() {
   const [currentTotalPages, setCurrentTotalPages] = useState(0);
   const [hasFilters, setHasFilters] = useState(false);
 
-  // Estados para pagos históricos
   const [historicalData, setHistoricalData] =
     useState<PaymentSummaryResponse | null>(null);
   const [historicalLoading, setHistoricalLoading] = useState(false);
@@ -116,14 +112,12 @@ export default function PayrollsPage() {
   const [reprocessing, setReprocessing] = useState(false);
   const [showReprocessDialog, setShowReprocessDialog] = useState(false);
 
-  // Regenerar períodos cuando cambia isDisassociated
   const applyCutoffToHistorical = historicalFilters.isDisassociated !== true;
   const periods = useMemo(
     () => generatePeriods(applyCutoffToHistorical),
     [applyCutoffToHistorical]
   );
 
-  // Verificar si hay filtros activos
   const hasActiveFilters = (filters: EmployeeSearchParams) => {
     return Boolean(
       filters.search ||
@@ -137,7 +131,6 @@ export default function PayrollsPage() {
     );
   };
 
-  // Fetch nóminas actuales
   const fetchCurrentPayrolls = async () => {
     setCurrentLoading(true);
     setCurrentError(null);
@@ -147,7 +140,6 @@ export default function PayrollsPage() {
       setHasFilters(filtersActive);
 
       if (filtersActive) {
-        // Con filtros: usar getPayrolls (paginado)
         const result: PayrollSummaryPageResponse =
           await payrollService.getPayrolls(
             currentPage,
@@ -155,14 +147,12 @@ export default function PayrollsPage() {
             currentFilters
           );
 
-        // Convertir PayrollSummaryPageResponse a PayrollSummaryResponse
         setCurrentData({
           payrolls: result.payrolls.content,
           totals: result.totals,
         });
         setCurrentTotalPages(result.payrolls.page.totalPages);
       } else {
-        // Sin filtros: usar getAllPayrolls (completo)
         const result: PayrollSummaryResponse =
           await payrollService.getAllPayrolls();
         setCurrentData(result);
@@ -179,22 +169,19 @@ export default function PayrollsPage() {
     }
   };
 
-  // Fetch pagos históricos - AHORA CON FILTROS EN EL BACKEND
   const fetchHistoricalPayments = async () => {
     setHistoricalLoading(true);
     setHistoricalError(null);
 
     try {
       console.log('historical Filters:', historicalFilters);
-      // Usar getPeriodInfo con el filtro isDisassociated para determinar si aplicar cutoff
       const applyCutoff = historicalFilters.isDisassociated !== true;
-      // El cutoff se aplica al generar períodos y al cambiar filtros
-      applyCutoff; // variable usada en handleHistoricalFiltersChange
+      applyCutoff;
       const periodNumber = parseInt(selectedPeriod);
 
       const result = await paymentService.getAllPaymentsByPeriod(
         periodNumber,
-        historicalFilters // Pasamos los filtros al backend
+        historicalFilters
       );
       setHistoricalData(result);
     } catch (err) {
@@ -216,16 +203,15 @@ export default function PayrollsPage() {
 
   useEffect(() => {
     fetchHistoricalPayments();
-  }, [selectedPeriod, historicalFilters]); // Agregamos historicalFilters como dependencia
+  }, [selectedPeriod, historicalFilters]);
 
   const handleCurrentFiltersChange = (filters: EmployeeSearchParams) => {
     setCurrentFilters(filters);
-    setCurrentPage(0); // Reset página cuando cambian filtros
+    setCurrentPage(0);
   };
 
   const handleHistoricalFiltersChange = (filters: EmployeeSearchParams) => {
     setHistoricalFilters(filters);
-    // Si cambió isDisassociated, resetear a primer período con nuevo cutoff
     const applyCutoff = filters.isDisassociated !== true;
     const { period } = getPeriodInfo(1, applyCutoff);
     setSelectedPeriod(period.toString());
@@ -308,7 +294,6 @@ export default function PayrollsPage() {
           <TabsTrigger value="historical">Meses Anteriores</TabsTrigger>
         </TabsList>
 
-        {/* Mes Actual */}
         <TabsContent value="current" className="space-y-4">
           {currentError ? (
             <div className="text-center p-8 border rounded-xl bg-destructive/5">
@@ -380,7 +365,6 @@ export default function PayrollsPage() {
                 />
               </div>
 
-              {/* Totales */}
               {currentData && !currentLoading && (
                 <Card className="border-2">
                   <CardHeader>
@@ -390,7 +374,6 @@ export default function PayrollsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {/* Bonos */}
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
                           Bonos Antigüedad
@@ -426,7 +409,6 @@ export default function PayrollsPage() {
                         </p>
                       </div>
 
-                      {/* Descuentos */}
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
                           Descuentos AFP
@@ -438,7 +420,6 @@ export default function PayrollsPage() {
                         </p>
                       </div>
 
-                      {/* Descuentos dinámicos */}
                       {Object.entries(currentData.totals.deductions).map(
                         ([key, value]) => (
                           <div key={key} className="space-y-1">
@@ -461,7 +442,6 @@ export default function PayrollsPage() {
                         </p>
                       </div>
 
-                      {/* Total líquido destacado */}
                       <div className="space-y-1 md:col-span-2 lg:col-span-1">
                         <p className="text-sm text-muted-foreground">
                           Total Líquido Pagable
@@ -487,7 +467,6 @@ export default function PayrollsPage() {
           )}
         </TabsContent>
 
-        {/* Meses Anteriores */}
         <TabsContent value="historical" className="space-y-4">
           <AlertDialog
             open={showReprocessDialog}
@@ -609,7 +588,6 @@ export default function PayrollsPage() {
                 />
               </div>
 
-              {/* Totales */}
               {historicalData && !historicalLoading && (
                 <Card className="border-2">
                   <CardHeader>
@@ -621,7 +599,6 @@ export default function PayrollsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {/* Bonos */}
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
                           Bonos Antigüedad
@@ -659,7 +636,6 @@ export default function PayrollsPage() {
                         </p>
                       </div>
 
-                      {/* Descuentos */}
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
                           Descuentos AFP
@@ -671,7 +647,6 @@ export default function PayrollsPage() {
                         </p>
                       </div>
 
-                      {/* Descuentos dinámicos */}
                       {Object.entries(historicalData.totals.deductions).map(
                         ([key, value]) => (
                           <div key={key} className="space-y-1">
@@ -696,7 +671,6 @@ export default function PayrollsPage() {
                         </p>
                       </div>
 
-                      {/* Total líquido destacado */}
                       <div className="space-y-1 md:col-span-2 lg:col-span-1">
                         <p className="text-sm text-muted-foreground">
                           Total Líquido Pagable

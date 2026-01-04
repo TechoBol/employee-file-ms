@@ -78,17 +78,12 @@ export function CompanySwitcher({ companies }: CompanyProps) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg font-medium uppercase">
-                {/* {activeTeam.logo ? (
-                  <activeTeam.logo className="size-4" />
-                ) : ( */}
                 <span>{getInitials(activeTeam.name)}</span>
-                {/* )} */}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{activeTeam.name}</span>
                 <span className="truncate text-xs">
-                  {/* {activeTeam.companyType} */}
-                  S.R.L.
+                  {activeTeam.type}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
@@ -110,11 +105,7 @@ export function CompanySwitcher({ companies }: CompanyProps) {
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-md border">
-                  {/* {team.logo ? (
-                    <team.logo className="size-4" />
-                  ) : ( */}
                   <span>{getInitials(team.name)}</span>
-                  {/* )} */}
                 </div>
                 {team.name}
               </DropdownMenuItem>

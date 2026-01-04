@@ -19,7 +19,7 @@ export function Memorandum() {
         <div className="flex gap-2">
           <span>{MemorandumTexts.actualMonth}</span>
           <div>
-            
+
           </div>
         </div>
       </div>

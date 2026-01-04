@@ -42,12 +42,11 @@ export function PersonalInfoForm() {
     },
   });
 
-  const loading = false; // puedes conectarlo a tu estado de loading si necesitas
+  const loading = false;
 
   return (
     <Form {...form}>
       <form className="space-y-4">
-        {/* Dirección */}
         <FormField
           control={form.control}
           name="direccion"
@@ -66,7 +65,6 @@ export function PersonalInfoForm() {
           )}
         />
 
-        {/* Fecha de nacimiento */}
         <FormField
           control={form.control}
           name="fechaNacimiento"
@@ -119,7 +117,6 @@ export function PersonalInfoForm() {
           )}
         />
 
-        {/* Contacto de emergencia */}
         <FormField
           control={form.control}
           name="contactoEmergencia"
@@ -138,7 +135,6 @@ export function PersonalInfoForm() {
           )}
         />
 
-        {/* Curriculum Vitae */}
         <div className="space-y-2">
           <FormLabel>Curriculum Vitae</FormLabel>
           <PdfUploader

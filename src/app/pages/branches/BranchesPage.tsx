@@ -58,11 +58,9 @@ export function BranchesPage() {
 
   const onSave = async (branch: BranchResponse) => {
     if (editingBranch) {
-      // Actualizar sucursal existente
       setBranches((prev) => prev.map((b) => (b.id === branch.id ? branch : b)));
       setFiltered((prev) => prev.map((b) => (b.id === branch.id ? branch : b)));
     } else {
-      // Agregar nueva sucursal
       setBranches((prev) => [branch, ...prev]);
       setFiltered((prev) => [branch, ...prev]);
     }

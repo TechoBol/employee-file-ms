@@ -46,7 +46,6 @@ const formatCurrency = (value: number) =>
     minimumFractionDigits: 2,
   }).format(value);
 
-// Función para determinar en qué mes está un advance
 const getMonthsAgoFromDate = (dateString: string): number => {
   const advanceDate = new Date(dateString);
   const now = new Date();
@@ -136,23 +135,19 @@ export function AdvanceSection({
 
   const handleAdvanceSaved = async (savedAdvance: AdvanceResponse) => {
     if (editingAdvance) {
-      // Actualizar existente
       setCurrentAdvances((prev) =>
         prev.map((a) => (a.id === savedAdvance.id ? savedAdvance : a))
       );
       setEditingAdvance(null);
     } else {
-      // Crear nuevo
       setCurrentAdvances([savedAdvance, ...currentAdvances]);
     }
 
     setDialogOpen(false);
     setUseReplaceMode(false);
 
-    // Recargar mes actual
     await fetchCurrentAdvances();
 
-    // Determinar el mes del advance y recargar si no es mes actual
     const monthsAgo = getMonthsAgoFromDate(savedAdvance.advanceDate);
     if (monthsAgo > 0 && monthlyAdvances.has(monthsAgo)) {
       await reloadMonth(monthsAgo);
@@ -163,7 +158,6 @@ export function AdvanceSection({
     advance: AdvanceResponse,
     isCurrentMonth: boolean = true
   ) => {
-    // Si está procesado, mostrar advertencia primero
     if (advance.processed) {
       setPendingAction({ type: 'edit', advance, isCurrentMonth });
       setProcessedWarningOpen(true);
@@ -176,7 +170,6 @@ export function AdvanceSection({
   };
 
   const handleDeleteClick = (advance: AdvanceResponse) => {
-    // Si está procesado, mostrar advertencia primero
     if (advance.processed) {
       setPendingAction({ type: 'delete', advance, isCurrentMonth: true });
       setProcessedWarningOpen(true);
@@ -222,10 +215,8 @@ export function AdvanceSection({
         ),
       });
 
-      // Recargar mes actual
       await fetchCurrentAdvances();
 
-      // Determinar el mes del advance eliminado y recargar si no es mes actual
       const monthsAgo = getMonthsAgoFromDate(advanceToDelete.advanceDate);
       if (monthsAgo > 0 && monthlyAdvances.has(monthsAgo)) {
         await reloadMonth(monthsAgo);

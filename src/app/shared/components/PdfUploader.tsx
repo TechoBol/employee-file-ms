@@ -29,7 +29,7 @@ export default function PdfUploader({
     useDropzone({
       onDrop,
       multiple: false,
-      maxSize: 4 * 1024 * 1024, // 4 MB
+      maxSize: 4 * 1024 * 1024,
       accept: { 'application/pdf': [] },
     });
 

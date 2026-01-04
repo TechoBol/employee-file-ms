@@ -179,7 +179,6 @@ export function SalarySummary({
     }
   };
 
-  // Organizar deducciones por tipo
   const getDeductionsByType = (
     deductions: PayrollDeductionResponse[] | PaymentDeductionResponse[]
   ): DeductionsByType => {
@@ -202,7 +201,6 @@ export function SalarySummary({
     return getDeductionsByType(payroll.deductions);
   }, [payroll?.deductions]);
 
-  // Calcular totales de deducciones por tipo
   const calculateDeductionTotals = (deductionsByType: DeductionsByType) => {
     return Object.entries(deductionsByType).reduce(
       (acc, [type, deductions]) => {
@@ -276,7 +274,6 @@ export function SalarySummary({
         <span className="text-sm font-semibold">Detalle de cálculo</span>
         <Separator />
 
-        {/* Ingresos */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Salario base</span>
@@ -310,7 +307,6 @@ export function SalarySummary({
           )}
         </div>
 
-        {/* Deducción de AFP */}
         <Separator className="my-2" />
         <span className="text-sm font-medium text-red-600">
           Deducciones Obligatorias
@@ -325,7 +321,6 @@ export function SalarySummary({
           </span>
         </div>
 
-        {/* Otras deducciones */}
         {payment.totalDeductions > 0 && (
           <>
             <Separator className="my-2" />
@@ -428,13 +423,11 @@ export function SalarySummary({
         </div>
       </div>
 
-      {/* Detalle de cálculo - Mes actual */}
       {baseSalary && payroll && (
         <section className="flex flex-col gap-2 rounded-xl border p-4">
           <span className="text-lg font-semibold">Mes actual</span>
           <Separator />
 
-          {/* Ingresos */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Salario base</span>
@@ -468,7 +461,6 @@ export function SalarySummary({
             )}
           </div>
 
-          {/* Deducción de AFP */}
           <Separator className="my-2" />
           <span className="text-sm font-medium text-red-600">
             Deducciones Obligatorias
@@ -483,7 +475,6 @@ export function SalarySummary({
             </span>
           </div>
 
-          {/* Otras deducciones */}
           {payroll.totalDeductions > 0 && (
             <>
               <Separator className="my-2" />
@@ -523,7 +514,6 @@ export function SalarySummary({
 
       <Separator className="my-4" />
 
-      {/* Historial de meses anteriores */}
       <div className="flex flex-col gap-4">
         <span className="text-lg font-semibold">Meses anteriores</span>
 

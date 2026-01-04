@@ -182,7 +182,6 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
       setLoading(true);
 
       if (employee) {
-        // Actualizar empleado existente
         const result = await employeeService.patchEmployee(employee.id, values);
 
         toast('Empleado actualizado', {
@@ -195,7 +194,6 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
           onSave(result);
         }
       } else {
-        // Crear nuevo empleado
         const result = await employeeService.createEmployee(values);
 
         toast('Empleado creado', {
@@ -229,7 +227,6 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-6 max-h-[60vh] overflow-y-auto px-1"
       >
-        {/* Información Personal */}
         <div className="space-y-4">
           <h3 className="text-base font-semibold bg-background py-2 z-10">
             Información Personal
@@ -344,7 +341,6 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
           </div>
         </div>
 
-        {/* Información de Contacto */}
         <div className="space-y-4">
           <h3 className="text-base font-semibold bg-background py-2 z-10">
             Información de Contacto
@@ -406,7 +402,6 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
           />
         </div>
 
-        {/* Información Laboral */}
         <div className="space-y-4">
           <h3 className="text-base font-semibold bg-background py-2 z-10">
             Información Laboral

@@ -135,7 +135,6 @@ export const PdfMergeReorder = forwardRef<
       })
     );
 
-    // Notificar cambios en documentos
     const updateDocuments = (
       newDocs: DocumentGroup[] | ((prev: DocumentGroup[]) => DocumentGroup[])
     ) => {
@@ -146,7 +145,6 @@ export const PdfMergeReorder = forwardRef<
       });
     };
 
-    // Cargar PDF desde URL
     const loadPdfFromUrl = async (
       url: string,
       targetDocumentId?: string,
@@ -184,7 +182,6 @@ export const PdfMergeReorder = forwardRef<
       }
     };
 
-    // Función interna para procesar el PDF
     const loadPdfInternal = async (file: File, targetDocumentId?: string) => {
       const buffer = await file.arrayBuffer();
       const pdfData = new Uint8Array(buffer);
@@ -250,14 +247,12 @@ export const PdfMergeReorder = forwardRef<
       }
     };
 
-    // Inicializar secciones estáticas
     const initializeStaticSections = async () => {
       if (initializedRef.current || staticSections.length === 0) return;
       initializedRef.current = true;
       setInitializing(true);
 
       try {
-        // Crear las secciones estáticas
         const newSections: DocumentGroup[] = staticSections.map((config) => ({
           id: config.id,
           sectionTitle: config.title,
@@ -270,7 +265,6 @@ export const PdfMergeReorder = forwardRef<
 
         updateDocuments(newSections);
 
-        // Cargar PDFs de las secciones que tienen URL
         for (const config of staticSections) {
           if (config.pdfUrl) {
             await loadPdfFromUrl(
@@ -287,7 +281,6 @@ export const PdfMergeReorder = forwardRef<
       }
     };
 
-    // Inicializar al montar
     useEffect(() => {
       initializeStaticSections();
     }, []);
@@ -374,7 +367,6 @@ export const PdfMergeReorder = forwardRef<
     };
 
     const handleDeleteDocument = (documentId: string) => {
-      // No permitir eliminar secciones estáticas
       const doc = documents.find((d) => d.id === documentId);
       if (doc?.isStatic) {
         alert('Esta sección no se puede eliminar');
@@ -440,7 +432,6 @@ export const PdfMergeReorder = forwardRef<
         const merged = await PDFDocument.create();
         const pdfCache = new Map<string, PDFDocument>();
 
-        // Cover page
         if (includeCoverPage) {
           const title =
             documentTitle ||
@@ -452,7 +443,6 @@ export const PdfMergeReorder = forwardRef<
           await createSeparatorPage(merged, title, 48);
         }
 
-        // Process documents
         for (const doc of documents) {
           if (doc.type === 'separator') {
             await createSeparatorPage(merged, doc.sectionTitle || 'Separación');
@@ -565,7 +555,6 @@ export const PdfMergeReorder = forwardRef<
         const formData = new FormData();
         const sectionNames: string[] = [];
 
-        // Filtrar secciones según configuración
         let sectionsToUpload = documents.filter(
           (doc) => doc.type === 'section'
         );
@@ -580,12 +569,10 @@ export const PdfMergeReorder = forwardRef<
           );
         }
 
-        // Generar PDF para cada sección y agregarlo al FormData
         const pdfCache = new Map<string, PDFDocument>();
 
         for (const doc of sectionsToUpload) {
           if (doc.pages.length === 0) {
-            // Sección vacía - crear PDF con una página en blanco
             sectionNames.push(doc.sectionTitle);
             const emptyPdf = await PDFDocument.create();
             emptyPdf.addPage();
@@ -637,7 +624,6 @@ export const PdfMergeReorder = forwardRef<
           sectionNames.push(doc.sectionTitle);
         }
 
-        // Construir URL con query params para sections
         const url = new URL(config.url);
         sectionNames.forEach((name) =>
           url.searchParams.append('sections', name)
@@ -698,7 +684,6 @@ export const PdfMergeReorder = forwardRef<
         let totalPages = 0;
 
         console.log('Merging sections:', config);
-        // Cover page opcional
         if (config.includeCoverPage) {
           const title =
             config.coverPageTitle ||
@@ -711,28 +696,24 @@ export const PdfMergeReorder = forwardRef<
           totalPages++;
         }
 
-        // Procesar cada sección
         for (const section of config.sections) {
           try {
-            // Cargar PDF desde URL primero
             const response = await fetch(section.pdfUrl);
             if (!response.ok) {
               console.error(
                 `Error fetching PDF from ${section.pdfUrl}: ${response.status}`
               );
-              continue; // Saltar esta sección si falla
+              continue;
             }
 
             const arrayBuffer = await response.arrayBuffer();
             const pdfDoc = await PDFDocument.load(arrayBuffer);
 
-            // Página separadora de sección DESPUÉS de verificar que el PDF existe
             if (section.includeSeparatorPage) {
               await createSeparatorPage(merged, section.title);
               totalPages++;
             }
 
-            // Copiar todas las páginas del PDF
             const pageCount = pdfDoc.getPageCount();
             const copiedPages = await merged.copyPages(
               pdfDoc,
@@ -749,7 +730,6 @@ export const PdfMergeReorder = forwardRef<
               `Error loading PDF for section "${section.title}":`,
               error
             );
-            // Continuar con las demás secciones
           }
         }
 
@@ -779,7 +759,6 @@ export const PdfMergeReorder = forwardRef<
       }
     };
 
-    // Exponer métodos al componente padre
     useImperativeHandle(ref, () => ({
       loadPdf,
       loadPdfFromUrl,

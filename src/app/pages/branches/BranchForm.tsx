@@ -101,7 +101,6 @@ export default function BranchForm({ onSave, branch }: BranchFormProps) {
       let result: BranchResponse;
 
       if (isEditing && branch) {
-        // Actualizar sucursal existente
         result = await branchService.patchBranch(branch.id, {
           ...values,
         });
@@ -112,7 +111,6 @@ export default function BranchForm({ onSave, branch }: BranchFormProps) {
           ),
         });
       } else {
-        // Crear nueva sucursal
         result = await branchService.createBranch({
           ...values,
         });
