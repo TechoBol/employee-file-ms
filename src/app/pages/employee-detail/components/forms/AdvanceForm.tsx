@@ -99,7 +99,6 @@ export function AdvanceForm({
           advanceDate: format(values.advanceDate, 'yyyy-MM-dd'),
         };
 
-        // Usar replacePatchAdvance o patchAdvance según el modo
         if (useReplaceMode) {
           savedAdvance = await advanceService.replacePatchAdvance(
             advance.id,

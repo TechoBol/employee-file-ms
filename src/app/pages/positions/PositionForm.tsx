@@ -92,7 +92,6 @@ export default function PositionForm({ onSave, position }: PositionFormProps) {
       let result: PositionResponse;
 
       if (isEditing && position) {
-        // Actualizar puesto existente
         result = await positionService.patchPosition(position.id, {
           ...values,
         });
@@ -103,7 +102,6 @@ export default function PositionForm({ onSave, position }: PositionFormProps) {
           ),
         });
       } else {
-        // Crear nuevo puesto
         result = await positionService.createPosition({
           ...values,
         });

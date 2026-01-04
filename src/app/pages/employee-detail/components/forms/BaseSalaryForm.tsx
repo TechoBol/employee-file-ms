@@ -84,7 +84,6 @@ export function BaseSalaryForm({
       let result: BaseSalaryResponse;
 
       if (isEditing && baseSalary) {
-        // Actualizar salario base existente
         result = await baseSalaryService.patchBaseSalary(baseSalary.id, {
           amount: Number(values.amount),
           startDate: values.startDate,
@@ -98,7 +97,6 @@ export function BaseSalaryForm({
           ),
         });
       } else {
-        // Crear nuevo salario base
         result = await baseSalaryService.createBaseSalary({
           employeeId,
           amount: Number(values.amount),

@@ -46,7 +46,6 @@ const calculateDays = (start: string, end: string): number => {
   return diffDays + 1;
 };
 
-// Función para determinar en qué mes está una vacación
 const getMonthsAgoFromDate = (dateString: string): number => {
   const vacationDate = new Date(dateString);
   const now = new Date();
@@ -135,21 +134,17 @@ export function VacationSection({
 
   const handleVacationSaved = async (savedVacation: VacationResponse) => {
     if (editingVacation) {
-      // Actualizar vacación existente
       setCurrentVacations((prev) =>
         prev.map((v) => (v.id === savedVacation.id ? savedVacation : v))
       );
       setEditingVacation(null);
     } else {
-      // Agregar nueva vacación
       setCurrentVacations([savedVacation, ...currentVacations]);
     }
     setDialogOpen(false);
 
-    // Refrescar la lista completa
     await fetchCurrentVacations();
 
-    // Determinar el mes de la vacación y recargar si no es mes actual
     const monthsAgo = getMonthsAgoFromDate(savedVacation.startDate);
     if (monthsAgo > 0 && monthlyVacations.has(monthsAgo)) {
       await reloadMonth(monthsAgo);
@@ -185,10 +180,8 @@ export function VacationSection({
         ),
       });
 
-      // Recargar mes actual
       await fetchCurrentVacations();
 
-      // Determinar el mes de la vacación eliminada y recargar si no es mes actual
       const monthsAgo = getMonthsAgoFromDate(vacationToDelete.startDate);
       if (monthsAgo > 0 && monthlyVacations.has(monthsAgo)) {
         await reloadMonth(monthsAgo);

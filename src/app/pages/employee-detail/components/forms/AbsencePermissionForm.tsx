@@ -36,7 +36,6 @@ import type { AbsenceResponse } from '@/rest-client/interface/response/AbsenceRe
 import { AbsenceService } from '@/rest-client/services/AbsenceService';
 import { MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 
-// Tipos específicos para el formulario
 export const AbsencePermissionType = {
   PERMISSION: 'PERMISSION',
   ABSENCE: 'ABSENCE',
@@ -87,38 +86,27 @@ const formatCurrency = (value: number) =>
     minimumFractionDigits: 2,
   }).format(value);
 
-// Función mejorada para extraer información del absence existente
 const parseAbsenceData = (absence: AbsenceResponse) => {
   const description = absence.description || '';
   const lowerDesc = description.toLowerCase();
 
-  // Determinar tipo - buscar las palabras clave
   let type: AbsencePermissionType;
   if (lowerDesc.includes('falta')) {
     type = AbsencePermissionType.ABSENCE;
   } else if (lowerDesc.includes('permiso')) {
     type = AbsencePermissionType.PERMISSION;
   } else {
-    // Default si no se encuentra ninguna palabra clave
     type = AbsencePermissionType.PERMISSION;
   }
 
-  // Determinar duración - buscar "medio" o "medio día"
   let duration: PermissionDuration;
   if (lowerDesc.includes('medio')) {
     duration = PermissionDuration.HALF_DAY;
   } else {
-    // Por defecto es día completo si no dice "medio"
     duration = PermissionDuration.FULL_DAY;
   }
 
-  // Extraer reason y description adicional
-  // El formato es: "Permiso/Falta [duración] - [reason] - [description]"
   const parts = description.split(' - ');
-
-  // parts[0] es "Permiso medio día" o "Falta 1 día", etc.
-  // parts[1] es el reason (si existe)
-  // parts[2] es la descripción adicional (si existe)
 
   const reason = parts.length > 1 ? parts[1].trim() : '';
   const additionalDesc = parts.length > 2 ? parts[2].trim() : '';
@@ -145,17 +133,15 @@ export function AbsencePermissionForm({
   const [loading, setLoading] = useState(false);
   const isEditing = !!absence;
 
-  // Calcular el mes por defecto basado en isDisassociated y MONTH_CUTOFF_DAY
   const getDefaultMonth = () => {
     const now = new Date();
     if (isDisassociated) {
-      return now; // Mes actual si está desasociado
+      return now;
     }
-    // Si no está desasociado y estamos en los primeros MONTH_CUTOFF_DAY días
     if (now.getDate() <= MONTH_CUTOFF_DAY) {
-      return subMonths(now, 1); // Mes anterior
+      return subMonths(now, 1);
     }
-    return now; // Mes actual
+    return now;
   };
 
   const form = useForm<AbsencePermissionFormValues>({
@@ -204,7 +190,6 @@ export function AbsencePermissionForm({
     try {
       setLoading(true);
 
-      // Crear descripción detallada
       let detailedDescription = '';
       const durationText =
         values.duration === PermissionDuration.HALF_DAY ? 'medio día' : '1 día';
@@ -234,7 +219,6 @@ export function AbsencePermissionForm({
           reason: values.reason,
         };
 
-        // Usar replacePatchAbsence o patchAbsence según el modo
         if (useReplaceMode) {
           savedAbsence = await absenceService.replacePatchAbsence(
             absence.id,

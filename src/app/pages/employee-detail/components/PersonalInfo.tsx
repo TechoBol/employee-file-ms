@@ -181,7 +181,6 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
         {renderDialogContent}
       </ReusableDialog>
 
-      {/* Drawer para File Manager */}
       <Drawer
         open={fileDrawerOpen}
         onOpenChange={setFileDrawerOpen}
@@ -256,7 +255,6 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
         <span className="text-xl font-bold">{PersonalInfoTexts.title}</span>
       </div>
 
-      {/* Sección dedicada al File del empleado */}
       <section className="flex p-6 justify-between items-center rounded-lg border-2 border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-md transition-shadow">
         <div className="flex items-center gap-4">
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#DBEAFE] text-[#2563EB]">
@@ -321,7 +319,6 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
           </section>
         </section>
 
-        {/* Contacto de emergencia */}
         <section className="flex flex-col gap-4 w-full">
           <div className="flex justify-between items-center">
             <span className="text-2xl font-semibold">

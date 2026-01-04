@@ -64,7 +64,6 @@ export function Actions({
     navigate(`/employees/${payrollEmployee.employee.id}`);
   }
 
-  // Organizar deducciones por tipo
   const deductionsByType = useMemo<DeductionsByType>(() => {
     if (!payrollDetails?.deductions) return {};
 
@@ -79,7 +78,6 @@ export function Actions({
     return result;
   }, [payrollDetails?.deductions]);
 
-  // Calcular totales de deducciones por tipo
   const deductionTotals = useMemo(() => {
     return Object.entries(deductionsByType).reduce(
       (acc, [type, deductions]) => {
@@ -139,7 +137,6 @@ export function Actions({
             <span className="text-sm font-semibold">Detalle de cálculo</span>
             <Separator />
 
-            {/* Ingresos */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Salario base</span>
@@ -176,7 +173,6 @@ export function Actions({
               )}
             </div>
 
-            {/* Deducción de AFP */}
             <Separator className="my-2" />
             <span className="text-sm font-medium text-red-600">
               Deducciones Obligatorias
@@ -192,7 +188,6 @@ export function Actions({
               </span>
             </div>
 
-            {/* Otras deducciones */}
             {payrollDetails.totalDeductions > 0 && (
               <>
                 <Separator className="my-2" />

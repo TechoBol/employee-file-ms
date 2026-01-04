@@ -57,7 +57,6 @@ export function DepartmentsPage() {
 
   const onSave = async (department: DepartmentResponse) => {
     if (editingDepartment) {
-      // Actualizar departamento existente
       setDepartments((prev) =>
         prev.map((d) => (d.id === department.id ? department : d))
       );
@@ -65,7 +64,6 @@ export function DepartmentsPage() {
         prev.map((d) => (d.id === department.id ? department : d))
       );
     } else {
-      // Agregar nuevo departamento
       setDepartments((prev) => [department, ...prev]);
       setFiltered((prev) => [department, ...prev]);
     }

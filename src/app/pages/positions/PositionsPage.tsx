@@ -56,7 +56,6 @@ export function PositionsPage() {
 
   const onSave = async (position: PositionResponse) => {
     if (editingPosition) {
-      // Actualizar puesto existente
       setPositions((prev) =>
         prev.map((p) => (p.id === position.id ? position : p))
       );
@@ -64,7 +63,6 @@ export function PositionsPage() {
         prev.map((p) => (p.id === position.id ? position : p))
       );
     } else {
-      // Agregar nuevo puesto
       setPositions((prev) => [position, ...prev]);
       setFiltered((prev) => [position, ...prev]);
     }

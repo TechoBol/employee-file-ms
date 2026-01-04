@@ -96,7 +96,6 @@ export default function GeneralSettingsPage() {
   return (
     <div className=" bg-gradient-to-br 0 p-6">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
             Configuración General
@@ -106,7 +105,6 @@ export default function GeneralSettingsPage() {
           </p>
         </div>
 
-        {/* Alert Messages */}
         {alert.type && (
           <Alert
             className={`mb-6 border-l-4 ${
@@ -130,7 +128,6 @@ export default function GeneralSettingsPage() {
           </Alert>
         )}
 
-        {/* Settings Card */}
         <Card className="shadow-sm border border-slate-200">
           <CardHeader className="border-b border-slate-200">
             <CardTitle className="text-xl">Parámetros del Sistema</CardTitle>
@@ -141,7 +138,6 @@ export default function GeneralSettingsPage() {
 
           <CardContent className="pt-6">
             <div className="space-y-6">
-              {/* Working Days Per Month */}
               <div className="space-y-2">
                 <Label
                   htmlFor="workingDaysPerMonth"
@@ -170,7 +166,6 @@ export default function GeneralSettingsPage() {
                 </p>
               </div>
 
-              {/* Seniority Increase Percentage */}
               <div className="space-y-2">
                 <Label
                   htmlFor="seniorityIncreasePercentage"
@@ -200,7 +195,6 @@ export default function GeneralSettingsPage() {
                 </p>
               </div>
 
-              {/* AFP Contribution Percentage */}
               <div className="space-y-2">
                 <Label
                   htmlFor="contributionAfpPercentage"
@@ -230,7 +224,6 @@ export default function GeneralSettingsPage() {
                 </p>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-3 pt-6 border-t border-slate-200">
                 <Button
                   variant="outline"
@@ -259,7 +252,6 @@ export default function GeneralSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Info Section */}
         <div className="mt-8 p-4 bg-slate-100 rounded-lg border border-slate-200">
           <p className="text-sm text-slate-600">
             <span className="font-semibold">Nota:</span> Los cambios se aplican

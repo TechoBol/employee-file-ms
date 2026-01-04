@@ -56,26 +56,22 @@ export function EmployeeFilters({
   debounceMs = 300,
   showDebounceIndicator = true,
 }: EmployeeFiltersProps) {
-  // Estados locales para inputs con debounce
   const [localSearch, setLocalSearch] = useState(filters.search || '');
   const [localCi, setLocalCi] = useState(filters.ci || '');
   const [localEmail, setLocalEmail] = useState(filters.email || '');
   const [localPhone, setLocalPhone] = useState(filters.phone || '');
   const [isDebouncing, setIsDebouncing] = useState(false);
 
-  // Debounced values
   const debouncedSearch = useDebouncedValue(localSearch, debounceMs);
   const debouncedCi = useDebouncedValue(localCi, debounceMs);
   const debouncedEmail = useDebouncedValue(localEmail, debounceMs);
   const debouncedPhone = useDebouncedValue(localPhone, debounceMs);
 
-  // Estados para selects
   const [branches, setBranches] = useState<BranchResponse[]>([]);
   const [positions, setPositions] = useState<PositionResponse[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [loadingPositions, setLoadingPositions] = useState(true);
 
-  // Cargar branches y positions
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -95,7 +91,6 @@ export function EmployeeFilters({
     loadData();
   }, []);
 
-  // Sincronizar valores locales con filters externos
   useEffect(() => {
     setLocalSearch(filters.search || '');
     setLocalCi(filters.ci || '');
@@ -103,7 +98,6 @@ export function EmployeeFilters({
     setLocalPhone(filters.phone || '');
   }, [filters]);
 
-  // Aplicar cambios cuando los valores debounced cambien
   useEffect(() => {
     setIsDebouncing(false);
     onChange({
@@ -116,7 +110,6 @@ export function EmployeeFilters({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, debouncedCi, debouncedEmail, debouncedPhone]);
 
-  // Detectar cuando se está escribiendo (debouncing)
   useEffect(() => {
     if (
       localSearch !== debouncedSearch ||
@@ -203,7 +196,6 @@ export function EmployeeFilters({
     filters.branchId ||
     filters.positionId;
 
-  // Determinar el valor actual del select de estado de asociación
   const getAssociationStatusValue = () => {
     if (filters.isDisassociated === undefined) return 'all';
     return filters.isDisassociated ? 'true' : 'false';
@@ -211,7 +203,6 @@ export function EmployeeFilters({
 
   return (
     <div className={`flex flex-col sm:flex-row gap-2 ${className}`}>
-      {/* Search Input Principal */}
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -229,7 +220,6 @@ export function EmployeeFilters({
         )}
       </div>
 
-      {/* Filtros Avanzados en Sheet */}
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="outline" className="relative">
@@ -249,7 +239,6 @@ export function EmployeeFilters({
           </SheetHeader>
 
           <div className="space-y-4 py-6">
-            {/* Estado de Asociación */}
             <div className="space-y-2">
               <Label htmlFor="association-status">Estado de Empleado</Label>
               <Select
@@ -270,7 +259,6 @@ export function EmployeeFilters({
               </Select>
             </div>
 
-            {/* CI */}
             <div className="space-y-2">
               <Label htmlFor="ci">Cédula de Identidad</Label>
               <div className="relative">
@@ -296,7 +284,6 @@ export function EmployeeFilters({
               </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -322,7 +309,6 @@ export function EmployeeFilters({
               </div>
             </div>
 
-            {/* Phone */}
             <div className="space-y-2">
               <Label htmlFor="phone">Teléfono</Label>
               <div className="relative">
@@ -348,7 +334,6 @@ export function EmployeeFilters({
               </div>
             </div>
 
-            {/* Tipo de Empleado */}
             <div className="space-y-2">
               <Label htmlFor="type">Tipo de Empleado</Label>
               <Select
@@ -370,7 +355,6 @@ export function EmployeeFilters({
               </Select>
             </div>
 
-            {/* Sucursal */}
             <div className="space-y-2">
               <Label htmlFor="branch">Sucursal</Label>
               <Select
@@ -398,7 +382,6 @@ export function EmployeeFilters({
               </Select>
             </div>
 
-            {/* Cargo/Posición */}
             <div className="space-y-2">
               <Label htmlFor="position">Cargo</Label>
               <Select
@@ -424,7 +407,6 @@ export function EmployeeFilters({
               </Select>
             </div>
 
-            {/* Botón limpiar filtros */}
             {hasActiveFilters && (
               <Button
                 variant="outline"
@@ -440,7 +422,6 @@ export function EmployeeFilters({
         </SheetContent>
       </Sheet>
 
-      {/* Badge de filtros activos (opcional) */}
       {hasActiveFilters && (
         <Button
           variant="ghost"

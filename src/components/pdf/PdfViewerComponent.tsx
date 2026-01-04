@@ -28,7 +28,6 @@ export const PdfViewerComponent = ({
   useEffect(() => {
     generatePdfPreview();
 
-    // Cleanup: revoke object URL when component unmounts
     return () => {
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
@@ -43,9 +42,8 @@ export const PdfViewerComponent = ({
       setIsGenerating(true);
       setError(null);
 
-      // Preparar las secciones desde fileData
       const sections = fileData.sections
-        .filter((section) => section.url) // Solo secciones con PDF
+        .filter((section) => section.url)
         .map((section) => ({
           title: section.section || section.originalName,
           pdfUrl: section.url,
@@ -66,7 +64,6 @@ export const PdfViewerComponent = ({
       const result = await pdfMergeRef.current.getMergedPdfFromSections(config);
 
       if (result.success && result.blob) {
-        // Revoke previous URL if exists
         if (pdfUrl) {
           URL.revokeObjectURL(pdfUrl);
         }
@@ -108,7 +105,6 @@ export const PdfViewerComponent = ({
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg p-6">
-          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
@@ -135,7 +131,6 @@ export const PdfViewerComponent = ({
             )}
           </div>
 
-          {/* Loading State */}
           {isGenerating && (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
@@ -143,7 +138,6 @@ export const PdfViewerComponent = ({
             </div>
           )}
 
-          {/* Error State */}
           {error && !isGenerating && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
               <p className="text-red-600 font-medium">{error}</p>
@@ -157,7 +151,6 @@ export const PdfViewerComponent = ({
             </div>
           )}
 
-          {/* PDF Viewer */}
           {pdfUrl && !isGenerating && !error && (
             <div className="border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
               <iframe
@@ -169,7 +162,6 @@ export const PdfViewerComponent = ({
             </div>
           )}
 
-          {/* Hidden PdfMergeReorder component (only for PDF generation) */}
           <div className="hidden">
             <PdfMergeReorder
               ref={pdfMergeRef}

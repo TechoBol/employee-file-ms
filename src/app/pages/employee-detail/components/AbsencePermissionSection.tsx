@@ -77,7 +77,6 @@ const getDurationFromDescription = (
     : PermissionDuration.FULL_DAY;
 };
 
-// Función para determinar en qué mes está un absence
 const getMonthsAgoFromDate = (dateString: string): number => {
   const absenceDate = new Date(dateString);
   const now = new Date();
@@ -181,23 +180,19 @@ export function AbsencePermissionSection({
 
   const handleAbsenceSaved = async (savedAbsence: AbsenceResponse) => {
     if (editingAbsence) {
-      // Actualizar existente
       setAbsenceEvents((prev) =>
         prev.map((a) => (a.id === savedAbsence.id ? savedAbsence : a))
       );
       setEditingAbsence(null);
     } else {
-      // Crear nuevo
       setAbsenceEvents([savedAbsence, ...absenceEvents]);
     }
 
     setDialogOpen(false);
     setUseReplaceMode(false);
 
-    // Recargar mes actual
     await fetchCurrentAbsences();
 
-    // Determinar el mes del absence y recargar si no es mes actual
     const monthsAgo = getMonthsAgoFromDate(savedAbsence.date);
     if (monthsAgo > 0 && monthlyAbsences.has(monthsAgo)) {
       await reloadMonth(monthsAgo);
@@ -208,7 +203,6 @@ export function AbsencePermissionSection({
     absence: AbsenceResponse,
     isCurrentMonth: boolean = true
   ) => {
-    // Si está procesado, mostrar advertencia primero
     if (absence.processed) {
       setPendingAction({ type: 'edit', absence, isCurrentMonth });
       setProcessedWarningOpen(true);
@@ -221,7 +215,6 @@ export function AbsencePermissionSection({
   };
 
   const handleDeleteClick = (absence: AbsenceResponse) => {
-    // Si está procesado, mostrar advertencia primero
     if (absence.processed) {
       setPendingAction({ type: 'delete', absence, isCurrentMonth: true });
       setProcessedWarningOpen(true);
@@ -267,10 +260,8 @@ export function AbsencePermissionSection({
         ),
       });
 
-      // Recargar mes actual
       await fetchCurrentAbsences();
 
-      // Determinar el mes del absence eliminado y recargar si no es mes actual
       const monthsAgo = getMonthsAgoFromDate(absenceToDelete.date);
       if (monthsAgo > 0 && monthlyAbsences.has(monthsAgo)) {
         await reloadMonth(monthsAgo);

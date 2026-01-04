@@ -72,7 +72,7 @@ export const generatePDF = (data: any[], totals: any, title: string, period?: st
         ),
         formatCurrency(
           (row.payroll?.seniorityBonus || 0) + (row.payment?.otherBonuses || 0)
-        ), // Total Bonos
+        ),
         formatCurrency(
           row.payroll?.totalEarnings || row.payment?.totalEarnings || 0
         ),
@@ -108,7 +108,7 @@ export const generatePDF = (data: any[], totals: any, title: string, period?: st
       formatCurrency(totals?.totalSeniorityBonuses || 0),
       '-',
       formatCurrency(totals?.totalOtherBonuses || 0),
-      formatCurrency(totals?.totalBonuses || 0), // Total Bonos
+      formatCurrency(totals?.totalBonuses || 0),
       formatCurrency(totals?.totalEarnings || 0),
 
       formatCurrency(totals?.deductions?.PERMISSION || 0),
@@ -177,7 +177,6 @@ export const generatePDF = (data: any[], totals: any, title: string, period?: st
         fontSize: 7,
       },
       willDrawCell: (data: any) => {
-        // Ocultar el texto original de los títulos de descuentos (columnas 10-14)
         if (
           data.section === 'head' &&
           data.row.index === 1 &&
@@ -188,7 +187,6 @@ export const generatePDF = (data: any[], totals: any, title: string, period?: st
         }
       },
       didDrawCell: (data: any) => {
-        // Dibujar los títulos de descuentos más pequeños (columnas 10-14)
         if (
           data.section === 'head' &&
           data.row.index === 1 &&
@@ -218,7 +216,7 @@ export const generatePDF = (data: any[], totals: any, title: string, period?: st
         5: { cellWidth: 16, halign: 'right' },
         6: { cellWidth: 8, halign: 'center' },
         7: { cellWidth: 16, halign: 'right' },
-        8: { cellWidth: 17, halign: 'right', fontStyle: 'bold' }, // Total Bonos
+        8: { cellWidth: 17, halign: 'right', fontStyle: 'bold' },
         9: { cellWidth: 18, halign: 'right', fontStyle: 'bold' },
 
         10: { cellWidth: 16, halign: 'right' },

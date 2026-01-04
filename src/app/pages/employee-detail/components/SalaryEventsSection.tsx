@@ -48,7 +48,6 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-// Función para determinar en qué mes está un salary event
 const getMonthsAgoFromDate = (dateString: string): number => {
   const eventDate = new Date(dateString);
   const now = new Date();
@@ -166,10 +165,8 @@ export function SalaryEventsSection({
     setDialogOpen(false);
     setUseReplaceMode(false);
 
-    // Recargar mes actual
     await fetchCurrentSalaryEvents();
 
-    // Determinar el mes del salary event y recargar si no es mes actual
     const monthsAgo = getMonthsAgoFromDate(savedSalaryEvent.startDate);
     if (monthsAgo > 0 && monthlySalaryEvents.has(monthsAgo)) {
       await reloadMonth(monthsAgo);
@@ -180,7 +177,6 @@ export function SalaryEventsSection({
     salaryEvent: SalaryEventResponse,
     isCurrentMonth: boolean = true
   ) => {
-    // Si está procesado, mostrar advertencia primero
     if (salaryEvent.processed) {
       setPendingAction({ type: 'edit', salaryEvent, isCurrentMonth });
       setProcessedWarningOpen(true);
@@ -193,7 +189,6 @@ export function SalaryEventsSection({
   };
 
   const handleDeleteClick = (salaryEvent: SalaryEventResponse) => {
-    // Si está procesado, mostrar advertencia primero
     if (salaryEvent.processed) {
       setPendingAction({ type: 'delete', salaryEvent, isCurrentMonth: true });
       setProcessedWarningOpen(true);
@@ -239,10 +234,8 @@ export function SalaryEventsSection({
         ),
       });
 
-      // Recargar mes actual
       await fetchCurrentSalaryEvents();
 
-      // Determinar el mes del salary event eliminado y recargar si no es mes actual
       const monthsAgo = getMonthsAgoFromDate(salaryEventToDelete.startDate);
       if (monthsAgo > 0 && monthlySalaryEvents.has(monthsAgo)) {
         await reloadMonth(monthsAgo);

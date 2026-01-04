@@ -125,7 +125,6 @@ export function SalaryEventForm({
             : undefined,
         };
 
-        // Usar replacePatchSalaryEvent o patchSalaryEvent según el modo
         if (useReplaceMode) {
           savedSalaryEvent = await salaryEventService.replacePatchSalaryEvent(
             salaryEvent.id,

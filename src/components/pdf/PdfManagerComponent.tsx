@@ -18,15 +18,6 @@ const PREDEFINED_SECTIONS = [
 const mapFileToStaticSections = (
   fileData: FileWithUrlResponse
 ): StaticSectionConfig[] => {
-  // Crear mapa de secciones predefinidas (título en minúsculas -> key)
-  // const predefinedMap = new Map(
-  //   PREDEFINED_SECTIONS.map((section) => [
-  //     section.title.toLowerCase(),
-  //     section.key,
-  //   ])
-  // );
-
-  // Crear mapa de secciones existentes
   const existingSectionsMap = new Map(
     fileData.sections.map((section) => {
       const sectionTitle = section.section || section.originalName;
@@ -42,7 +33,6 @@ const mapFileToStaticSections = (
     })
   );
 
-  // 1. Primero agregar las secciones predefinidas
   const sections: StaticSectionConfig[] = PREDEFINED_SECTIONS.map(
     (predefinedSection) => {
       const existingSection = existingSectionsMap.get(
@@ -50,12 +40,10 @@ const mapFileToStaticSections = (
       );
 
       if (existingSection) {
-        // Marcar como procesada
         existingSectionsMap.delete(predefinedSection.title.toLowerCase());
         return existingSection;
       }
 
-      // Si no existe, crear una sección vacía
       return {
         id: `empty-${predefinedSection.key}`,
         title: predefinedSection.title,
@@ -65,7 +53,6 @@ const mapFileToStaticSections = (
     }
   );
 
-  // 2. Agregar las secciones adicionales que no están en las predefinidas
   const additionalSections = Array.from(existingSectionsMap.values());
 
   return [...sections, ...additionalSections];
@@ -91,7 +78,6 @@ export const PdfManagerComponent = ({
 
   const staticSections = useMemo(() => {
     if (!fileData) {
-      // Si no hay datos del empleado, crear todas las secciones vacías
       return PREDEFINED_SECTIONS.map((section) => ({
         id: `empty-${section.key}`,
         title: section.title,
@@ -162,7 +148,6 @@ export const PdfManagerComponent = ({
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header con botones */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-4">File</h1>
 
@@ -194,7 +179,6 @@ export const PdfManagerComponent = ({
             )}
           </div>
 
-          {/* Componente PdfMergeReorder con secciones estáticas */}
           <PdfMergeReorder
             ref={pdfMergeRef}
             documentTitle="Mi Documento"
@@ -207,7 +191,6 @@ export const PdfManagerComponent = ({
             }
           />
 
-          {/* Modals */}
           {showSeparatorModal && (
             <Modal
               open={showSeparatorModal}

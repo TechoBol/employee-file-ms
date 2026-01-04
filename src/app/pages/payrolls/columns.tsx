@@ -176,13 +176,11 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
 
       return (
         <div className="flex flex-col gap-0.5 min-w-[150px]">
-          {/* AFP */}
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Gestora:</span>
             <span className="font-medium">{formatCurrency(deductionAfp)}</span>
           </div>
 
-          {/* Otras deducciones */}
           {deductions.map((deduction, index) => {
             console.log(deduction);
             return (
@@ -387,13 +385,11 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
 
       return (
         <div className="flex flex-col gap-0.5 min-w-[150px]">
-          {/* AFP */}
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Gestora:</span>
             <span className="font-medium">{formatCurrency(deductionAfp)}</span>
           </div>
 
-          {/* Otras deducciones */}
           {deductions.map((deduction, index) => (
             <div key={index} className="flex justify-between text-xs">
               <span className="text-muted-foreground">

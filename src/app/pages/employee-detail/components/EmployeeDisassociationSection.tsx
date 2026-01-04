@@ -82,7 +82,6 @@ export function EmployeeDisassociationSection({
   const [associating, setAssociating] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number>(0);
 
-  // Form state
   const [disassociationDate, setDisassociationDate] = useState<
     Date | undefined
   >(undefined);
@@ -104,7 +103,6 @@ export function EmployeeDisassociationSection({
     }
   }, [isDisassociated, employee.disassociatedAt]);
 
-  // Initialize form with current date when opening disassociate dialog
   useEffect(() => {
     if (disassociateDialogOpen && !isDisassociated) {
       setDisassociationDate(new Date());
@@ -112,7 +110,6 @@ export function EmployeeDisassociationSection({
     }
   }, [disassociateDialogOpen, isDisassociated]);
 
-  // Load existing data when editing
   useEffect(() => {
     if (editDialogOpen && employee.disassociationDate) {
       setDisassociationDate(new Date(employee.disassociationDate));
