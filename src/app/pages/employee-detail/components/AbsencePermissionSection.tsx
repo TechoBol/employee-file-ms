@@ -32,7 +32,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatDate } from '@/lib/utils';
-import { format } from 'date-fns';
+import { getMonthRange } from '@/lib/date-utils';
 
 export const AbsencePermissionType = {
   PERMISSION: 'PERMISSION',
@@ -51,6 +51,7 @@ export type PermissionDuration =
 type AbsencePermissionSectionProps = {
   employeeId: string;
   employeeName?: string;
+  isDisassociated?: boolean;
 };
 
 const formatCurrency = (value: number) =>
@@ -59,13 +60,6 @@ const formatCurrency = (value: number) =>
     currency: 'BOB',
     minimumFractionDigits: 2,
   }).format(value);
-
-const formatMonthYear = (date: Date) => {
-  return date.toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-  });
-};
 
 const isPermission = (description: string): boolean => {
   return description.toLowerCase().includes('permiso');
@@ -83,32 +77,14 @@ const getDurationFromDescription = (
     : PermissionDuration.FULL_DAY;
 };
 
-const getMonthRange = (monthsAgo: number) => {
-  const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const endDate = new Date(
-    now.getFullYear(),
-    now.getMonth() - monthsAgo + 1,
-    0,
-    23,
-    59,
-    59
-  );
-  return {
-    startDate: format(startDate, 'yyyy-MM-dd'),
-    endDate: format(endDate, 'yyyy-MM-dd'),
-    label: formatMonthYear(startDate),
-  };
-};
-
 // Función para determinar en qué mes está un absence
 const getMonthsAgoFromDate = (dateString: string): number => {
   const absenceDate = new Date(dateString);
   const now = new Date();
-  
+
   const yearDiff = now.getFullYear() - absenceDate.getFullYear();
   const monthDiff = now.getMonth() - absenceDate.getMonth();
-  
+
   return yearDiff * 12 + monthDiff;
 };
 
@@ -117,7 +93,9 @@ const absenceService = new AbsenceService();
 export function AbsencePermissionSection({
   employeeId,
   employeeName,
+  isDisassociated,
 }: AbsencePermissionSectionProps) {
+  const applyCutoff = !isDisassociated;
   const [absenceEvents, setAbsenceEvents] = useState<AbsenceResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +128,7 @@ export function AbsencePermissionSection({
     try {
       setLoading(true);
       setError(null);
-      const deductions = await absenceService.getAbsencesByEmployee(employeeId);
+      const deductions = await absenceService.getAbsencesByEmployee(employeeId, undefined, undefined, !applyCutoff);
       const absenceDeductions = deductions.filter(
         (event) =>
           event.description &&
@@ -172,7 +150,7 @@ export function AbsencePermissionSection({
     setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
     try {
-      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
       const absences = await absenceService.getAbsencesByEmployee(
         employeeId,
         startDate,
@@ -215,10 +193,10 @@ export function AbsencePermissionSection({
 
     setDialogOpen(false);
     setUseReplaceMode(false);
-    
+
     // Recargar mes actual
     await fetchCurrentAbsences();
-    
+
     // Determinar el mes del absence y recargar si no es mes actual
     const monthsAgo = getMonthsAgoFromDate(savedAbsence.date);
     if (monthsAgo > 0 && monthlyAbsences.has(monthsAgo)) {
@@ -226,14 +204,17 @@ export function AbsencePermissionSection({
     }
   };
 
-  const handleEdit = (absence: AbsenceResponse, isCurrentMonth: boolean = true) => {
+  const handleEdit = (
+    absence: AbsenceResponse,
+    isCurrentMonth: boolean = true
+  ) => {
     // Si está procesado, mostrar advertencia primero
     if (absence.processed) {
       setPendingAction({ type: 'edit', absence, isCurrentMonth });
       setProcessedWarningOpen(true);
       return;
     }
-    
+
     setEditingAbsence(absence);
     setUseReplaceMode(!isCurrentMonth);
     setDialogOpen(true);
@@ -246,14 +227,14 @@ export function AbsencePermissionSection({
       setProcessedWarningOpen(true);
       return;
     }
-    
+
     setAbsenceToDelete(absence);
     setDeleteDialogOpen(true);
   };
 
   const handleProcessedWarningConfirm = () => {
     if (!pendingAction) return;
-    
+
     if (pendingAction.type === 'edit') {
       setEditingAbsence(pendingAction.absence);
       setUseReplaceMode(!pendingAction.isCurrentMonth);
@@ -262,7 +243,7 @@ export function AbsencePermissionSection({
       setAbsenceToDelete(pendingAction.absence);
       setDeleteDialogOpen(true);
     }
-    
+
     setProcessedWarningOpen(false);
     setPendingAction(null);
   };
@@ -288,7 +269,7 @@ export function AbsencePermissionSection({
 
       // Recargar mes actual
       await fetchCurrentAbsences();
-      
+
       // Determinar el mes del absence eliminado y recargar si no es mes actual
       const monthsAgo = getMonthsAgoFromDate(absenceToDelete.date);
       if (monthsAgo > 0 && monthlyAbsences.has(monthsAgo)) {
@@ -332,7 +313,7 @@ export function AbsencePermissionSection({
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { startDate, endDate } = getMonthRange(monthsAgo);
+          const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
           const absences = await absenceService.getAbsencesByEmployee(
             employeeId,
             startDate,
@@ -416,7 +397,10 @@ export function AbsencePermissionSection({
                 </Badge>
               )}
               {event.processed && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200"
+                >
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Procesado
                 </Badge>
@@ -445,7 +429,7 @@ export function AbsencePermissionSection({
               size="sm"
               variant="ghost"
               onClick={() => handleEdit(event, isCurrentMonth)}
-              title={isCurrentMonth ? "Editar" : "Editar (reemplazar)"}
+              title={isCurrentMonth ? 'Editar' : 'Editar (reemplazar)'}
             >
               <Edit2 className="h-4 w-4" />
             </Button>
@@ -479,9 +463,9 @@ export function AbsencePermissionSection({
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
         title={
-          editingAbsence 
-            ? useReplaceMode 
-              ? 'Editar Permiso/Falta (Reemplazar)' 
+          editingAbsence
+            ? useReplaceMode
+              ? 'Editar Permiso/Falta (Reemplazar)'
               : 'Editar Permiso/Falta'
             : 'Registrar Permiso o Falta'
         }
@@ -499,6 +483,7 @@ export function AbsencePermissionSection({
           employeeId={employeeId}
           absence={editingAbsence || undefined}
           useReplaceMode={useReplaceMode}
+          isDisassociated={isDisassociated}
           onSave={handleAbsenceSaved}
           onCancel={() => handleDialogChange(false)}
         />
@@ -526,7 +511,10 @@ export function AbsencePermissionSection({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={processedWarningOpen} onOpenChange={setProcessedWarningOpen}>
+      <AlertDialog
+        open={processedWarningOpen}
+        onOpenChange={setProcessedWarningOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -538,18 +526,25 @@ export function AbsencePermissionSection({
                 Este permiso/falta ya fue procesado en una planilla anterior.
               </p>
               <p className="font-medium text-amber-600">
-                ⚠️ Si realizas cambios, deberás recalcular la planilla de ese mes para ver los cambios reflejados.
+                ⚠️ Si realizas cambios, deberás recalcular la planilla de ese
+                mes para ver los cambios reflejados.
               </p>
               <p className="text-sm">
-                ¿Deseas continuar con {pendingAction?.type === 'edit' ? 'la edición' : 'la eliminación'}?
+                ¿Deseas continuar con{' '}
+                {pendingAction?.type === 'edit'
+                  ? 'la edición'
+                  : 'la eliminación'}
+                ?
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setProcessedWarningOpen(false);
-              setPendingAction(null);
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setProcessedWarningOpen(false);
+                setPendingAction(null);
+              }}
+            >
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
@@ -638,7 +633,7 @@ export function AbsencePermissionSection({
         <span className="text-lg font-semibold">Meses anteriores</span>
 
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
-          const { label } = getMonthRange(monthsAgo);
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const absences = monthlyAbsences.get(monthsAgo);
@@ -667,7 +662,9 @@ export function AbsencePermissionSection({
                     className="ml-2"
                     title="Recargar mes"
                   >
-                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                    />
                   </Button>
                 )}
               </div>

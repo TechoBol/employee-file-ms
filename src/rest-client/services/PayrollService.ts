@@ -7,7 +7,7 @@ export class PayrollService {
 
   async getPayrollsByEmployeeId(employeeId: string, useActualDate?: boolean): Promise<PayrollResponse> {
     const params = new URLSearchParams();
-    if (useActualDate !== undefined) {
+    if (useActualDate !== undefined && useActualDate !== null) {
       params.append('useActualDate', useActualDate.toString());
     }
     return httpClient.get<PayrollResponse>(`${this.BASE_URL}/calculate/employees/${employeeId}?${params.toString()}`);

@@ -10,11 +10,14 @@ export class AbsenceService {
     return httpClient.post<AbsenceResponse>(this.BASE_URL, absenceCreateRequest);
   }
 
-  async getAbsencesByEmployee(employeeId: string, startDate?: string, endDate?: string): Promise<AbsenceResponse[]> {
+  async getAbsencesByEmployee(employeeId: string, startDate?: string, endDate?: string, useActualDate?: boolean): Promise<AbsenceResponse[]> {
     const params = new URLSearchParams({
       ...(startDate && { startDate }),
       ...(endDate && { endDate })
     });
+    if (useActualDate !== undefined && useActualDate !== null) {
+      params.append('useActualDate', useActualDate.toString());
+    }
     const url = `${this.BASE_URL}/employees/${employeeId}${params.toString() ? `?${params}` : ''}`;
     return httpClient.get<AbsenceResponse[]>(url);
   }

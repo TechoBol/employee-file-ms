@@ -10,12 +10,15 @@ export class SalaryEventService {
     return httpClient.post<SalaryEventResponse>(this.BASE_URL, salaryCreateRequest);
   }
 
-  async getSalaryEventsByEmployeeId(employeeId: string, category?: string, startDate?: string, endDate?: string): Promise<SalaryEventResponse[]> {
+  async getSalaryEventsByEmployeeId(employeeId: string, category?: string, startDate?: string, endDate?: string, useActualDate?: boolean): Promise<SalaryEventResponse[]> {
     const params = new URLSearchParams({
       ...(category && { category }),
       ...(startDate && { startDate }),
       ...(endDate && { endDate }),
     });
+    if (useActualDate !== undefined && useActualDate !== null) {
+      params.append('useActualDate', useActualDate.toString());
+    }
     const url = `${this.BASE_URL}/employees/${employeeId}${params.toString() ? `?${params}` : ''}`;
     return httpClient.get<SalaryEventResponse[]>(url);
   }

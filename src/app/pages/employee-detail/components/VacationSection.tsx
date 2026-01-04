@@ -30,36 +30,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatDate } from '@/lib/utils';
-import { format } from 'date-fns';
+import { getMonthRange } from '@/lib/date-utils';
 
 type VacationSectionProps = {
   employeeId: string;
   employeeName?: string;
-};
-
-const formatMonthYear = (date: Date) => {
-  return date.toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-  });
-};
-
-const getMonthRange = (monthsAgo: number) => {
-  const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const endDate = new Date(
-    now.getFullYear(),
-    now.getMonth() - monthsAgo + 1,
-    0,
-    23,
-    59,
-    59
-  );
-  return {
-    startDate: format(startDate, 'yyyy-MM-dd'),
-    endDate: format(endDate, 'yyyy-MM-dd'),
-    label: formatMonthYear(startDate),
-  };
+  isDisassociated?: boolean;
 };
 
 const calculateDays = (start: string, end: string): number => {
@@ -86,7 +62,9 @@ const vacationService = new VacationService();
 export function VacationSection({
   employeeId,
   employeeName,
+  isDisassociated,
 }: VacationSectionProps) {
+  const applyCutoff = !isDisassociated;
   const [currentVacations, setCurrentVacations] = useState<VacationResponse[]>(
     []
   );
@@ -114,7 +92,10 @@ export function VacationSection({
       setLoading(true);
       setError(null);
       const vacations = await vacationService.getVacationsByEmployee(
-        employeeId
+        employeeId,
+        undefined,
+        undefined,
+        !applyCutoff
       );
       setCurrentVacations(vacations);
     } catch (err) {
@@ -131,7 +112,7 @@ export function VacationSection({
     setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
     try {
-      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
       const vacations = await vacationService.getVacationsByEmployee(
         employeeId,
         startDate,
@@ -249,7 +230,7 @@ export function VacationSection({
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { startDate, endDate } = getMonthRange(monthsAgo);
+          const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
           const vacations = await vacationService.getVacationsByEmployee(
             employeeId,
             startDate,
@@ -359,6 +340,7 @@ export function VacationSection({
           vacation={editingVacation || undefined}
           onSave={handleVacationSaved}
           onCancel={() => handleDialogChange(false)}
+          isDisassociated={isDisassociated}
         />
       </ReusableDialog>
 
@@ -456,7 +438,7 @@ export function VacationSection({
         <span className="text-lg font-semibold">Meses anteriores</span>
 
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
-          const { label } = getMonthRange(monthsAgo);
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const vacations = monthlyVacations.get(monthsAgo);

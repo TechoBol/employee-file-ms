@@ -1,8 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnsTexts } from '@/constants/localize';
-import { formatDate, formatDateHireDate } from '@/lib/formatters';
+import { formatDateHireDate } from '@/lib/formatters';
 import { Actions } from './Actions';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
+import { formatDate } from '@/lib/utils';
 
 export const columns: ColumnDef<EmployeeResponse>[] = [
   {
@@ -12,8 +13,7 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
     ),
     cell: ({ row }) => {
       const { firstName, lastName, hireDate, branchName } = row.original;
-      const formattedDate = formatDate(hireDate, 'es-ES');
-
+      const formattedDate = formatDate(hireDate);
       return (
         <section className="pl-4">
           <span className="font-medium">

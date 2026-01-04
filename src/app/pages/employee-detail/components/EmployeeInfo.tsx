@@ -12,7 +12,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { EmployeeDetailsTexts } from '@/constants/localize';
-import { formatDate, formatDateHireDate } from '@/lib/formatters';
+import { formatDateHireDate } from '@/lib/formatters';
 import {
   Briefcase,
   Calendar,
@@ -30,6 +30,7 @@ import { useNavigate } from 'react-router';
 import { EmployeeService } from '@/rest-client/services/EmployeeService';
 import { CompanyService } from '@/rest-client/services/CompanyService';
 import { toast } from 'sonner';
+import { formatDate } from '@/lib/utils';
 
 export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
   const { firstName, lastName, positionName, departmentName, hireDate, email } =

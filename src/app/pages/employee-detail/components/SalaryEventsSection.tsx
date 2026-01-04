@@ -33,18 +33,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatDate } from '@/lib/utils';
-import { format } from 'date-fns';
+import { getMonthRange } from '@/lib/date-utils';
 
 type SalaryEventsSectionProps = {
   employeeId: string;
   employeeName?: string;
-};
-
-const formatMonthYear = (date: Date) => {
-  return date.toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-  });
+  isDisassociated?: boolean;
 };
 
 const formatCurrency = (amount: number) => {
@@ -54,32 +48,14 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-const getMonthRange = (monthsAgo: number) => {
-  const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const endDate = new Date(
-    now.getFullYear(),
-    now.getMonth() - monthsAgo + 1,
-    0,
-    23,
-    59,
-    59
-  );
-  return {
-    startDate: format(startDate, 'yyyy-MM-dd'),
-    endDate: format(endDate, 'yyyy-MM-dd'),
-    label: formatMonthYear(startDate),
-  };
-};
-
 // Función para determinar en qué mes está un salary event
 const getMonthsAgoFromDate = (dateString: string): number => {
   const eventDate = new Date(dateString);
   const now = new Date();
-  
+
   const yearDiff = now.getFullYear() - eventDate.getFullYear();
   const monthDiff = now.getMonth() - eventDate.getMonth();
-  
+
   return yearDiff * 12 + monthDiff;
 };
 
@@ -88,7 +64,9 @@ const salaryEventService = new SalaryEventService();
 export function SalaryEventsSection({
   employeeId,
   employeeName,
+  isDisassociated,
 }: SalaryEventsSectionProps) {
+  const applyCutoff = !isDisassociated;
   const [currentSalaryEvents, setCurrentSalaryEvents] = useState<
     SalaryEventResponse[]
   >([]);
@@ -124,7 +102,10 @@ export function SalaryEventsSection({
       setError(null);
       const salaryEvents = await salaryEventService.getSalaryEventsByEmployeeId(
         employeeId,
-        'MANUAL'
+        'MANUAL',
+        undefined,
+        undefined,
+        !applyCutoff
       );
       setCurrentSalaryEvents(salaryEvents);
     } catch (err) {
@@ -143,7 +124,7 @@ export function SalaryEventsSection({
     setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
     try {
-      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
       const salaryEvents = await salaryEventService.getSalaryEventsByEmployeeId(
         employeeId,
         'MANUAL',
@@ -170,7 +151,9 @@ export function SalaryEventsSection({
     }
   };
 
-  const handleSalaryEventSaved = async (savedSalaryEvent: SalaryEventResponse) => {
+  const handleSalaryEventSaved = async (
+    savedSalaryEvent: SalaryEventResponse
+  ) => {
     if (editingSalaryEvent) {
       setCurrentSalaryEvents((prev) =>
         prev.map((e) => (e.id === savedSalaryEvent.id ? savedSalaryEvent : e))
@@ -179,13 +162,13 @@ export function SalaryEventsSection({
     } else {
       setCurrentSalaryEvents([savedSalaryEvent, ...currentSalaryEvents]);
     }
-    
+
     setDialogOpen(false);
     setUseReplaceMode(false);
-    
+
     // Recargar mes actual
     await fetchCurrentSalaryEvents();
-    
+
     // Determinar el mes del salary event y recargar si no es mes actual
     const monthsAgo = getMonthsAgoFromDate(savedSalaryEvent.startDate);
     if (monthsAgo > 0 && monthlySalaryEvents.has(monthsAgo)) {
@@ -193,14 +176,17 @@ export function SalaryEventsSection({
     }
   };
 
-  const handleEdit = (salaryEvent: SalaryEventResponse, isCurrentMonth: boolean = true) => {
+  const handleEdit = (
+    salaryEvent: SalaryEventResponse,
+    isCurrentMonth: boolean = true
+  ) => {
     // Si está procesado, mostrar advertencia primero
     if (salaryEvent.processed) {
       setPendingAction({ type: 'edit', salaryEvent, isCurrentMonth });
       setProcessedWarningOpen(true);
       return;
     }
-    
+
     setEditingSalaryEvent(salaryEvent);
     setUseReplaceMode(!isCurrentMonth);
     setDialogOpen(true);
@@ -213,14 +199,14 @@ export function SalaryEventsSection({
       setProcessedWarningOpen(true);
       return;
     }
-    
+
     setSalaryEventToDelete(salaryEvent);
     setDeleteDialogOpen(true);
   };
 
   const handleProcessedWarningConfirm = () => {
     if (!pendingAction) return;
-    
+
     if (pendingAction.type === 'edit') {
       setEditingSalaryEvent(pendingAction.salaryEvent);
       setUseReplaceMode(!pendingAction.isCurrentMonth);
@@ -229,7 +215,7 @@ export function SalaryEventsSection({
       setSalaryEventToDelete(pendingAction.salaryEvent);
       setDeleteDialogOpen(true);
     }
-    
+
     setProcessedWarningOpen(false);
     setPendingAction(null);
   };
@@ -255,7 +241,7 @@ export function SalaryEventsSection({
 
       // Recargar mes actual
       await fetchCurrentSalaryEvents();
-      
+
       // Determinar el mes del salary event eliminado y recargar si no es mes actual
       const monthsAgo = getMonthsAgoFromDate(salaryEventToDelete.startDate);
       if (monthsAgo > 0 && monthlySalaryEvents.has(monthsAgo)) {
@@ -299,7 +285,7 @@ export function SalaryEventsSection({
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { startDate, endDate } = getMonthRange(monthsAgo);
+          const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
           const salaryEvents =
             await salaryEventService.getSalaryEventsByEmployeeId(
               employeeId,
@@ -415,7 +401,7 @@ export function SalaryEventsSection({
             size="sm"
             variant="ghost"
             onClick={() => handleEdit(salaryEvent, isCurrentMonth)}
-            title={isCurrentMonth ? "Editar" : "Editar (reemplazar)"}
+            title={isCurrentMonth ? 'Editar' : 'Editar (reemplazar)'}
           >
             <Edit2 className="h-4 w-4" />
           </Button>
@@ -470,6 +456,7 @@ export function SalaryEventsSection({
           useReplaceMode={useReplaceMode}
           onSave={handleSalaryEventSaved}
           onCancel={() => handleDialogChange(false)}
+          isDisassociated={isDisassociated}
         />
       </ReusableDialog>
 
@@ -495,7 +482,10 @@ export function SalaryEventsSection({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={processedWarningOpen} onOpenChange={setProcessedWarningOpen}>
+      <AlertDialog
+        open={processedWarningOpen}
+        onOpenChange={setProcessedWarningOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -507,18 +497,25 @@ export function SalaryEventsSection({
                 Este evento salarial ya fue procesado en una planilla anterior.
               </p>
               <p className="font-medium text-amber-600">
-                ⚠️ Si realizas cambios, deberás recalcular la planilla de ese mes para ver los cambios reflejados.
+                ⚠️ Si realizas cambios, deberás recalcular la planilla de ese
+                mes para ver los cambios reflejados.
               </p>
               <p className="text-sm">
-                ¿Deseas continuar con {pendingAction?.type === 'edit' ? 'la edición' : 'la eliminación'}?
+                ¿Deseas continuar con{' '}
+                {pendingAction?.type === 'edit'
+                  ? 'la edición'
+                  : 'la eliminación'}
+                ?
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setProcessedWarningOpen(false);
-              setPendingAction(null);
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setProcessedWarningOpen(false);
+                setPendingAction(null);
+              }}
+            >
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
@@ -622,7 +619,7 @@ export function SalaryEventsSection({
         <span className="text-lg font-semibold">Meses anteriores</span>
 
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
-          const { label } = getMonthRange(monthsAgo);
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const salaryEvents = monthlySalaryEvents.get(monthsAgo);
@@ -651,7 +648,9 @@ export function SalaryEventsSection({
                     className="ml-2"
                     title="Recargar mes"
                   >
-                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                    />
                   </Button>
                 )}
               </div>

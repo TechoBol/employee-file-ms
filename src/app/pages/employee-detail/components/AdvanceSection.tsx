@@ -31,11 +31,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatDate } from '@/lib/utils';
-import { format } from 'date-fns';
+import { getMonthRange } from '@/lib/date-utils';
 
 type AdvanceSectionProps = {
   employeeId: string;
   employeeName?: string;
+  isDisassociated?: boolean;
 };
 
 const formatCurrency = (value: number) =>
@@ -44,31 +45,6 @@ const formatCurrency = (value: number) =>
     currency: 'BOB',
     minimumFractionDigits: 2,
   }).format(value);
-
-const formatMonthYear = (date: Date) => {
-  return date.toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-  });
-};
-
-const getMonthRange = (monthsAgo: number) => {
-  const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const endDate = new Date(
-    now.getFullYear(),
-    now.getMonth() - monthsAgo + 1,
-    0,
-    23,
-    59,
-    59
-  );
-  return {
-    startDate: format(startDate, 'yyyy-MM-dd'),
-    endDate: format(endDate, 'yyyy-MM-dd'),
-    label: formatMonthYear(startDate),
-  };
-};
 
 // Función para determinar en qué mes está un advance
 const getMonthsAgoFromDate = (dateString: string): number => {
@@ -86,7 +62,9 @@ const advanceService = new AdvanceService();
 export function AdvanceSection({
   employeeId,
   employeeName,
+  isDisassociated,
 }: AdvanceSectionProps) {
+  const applyCutoff = !isDisassociated;
   const [currentAdvances, setCurrentAdvances] = useState<AdvanceResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,12 +97,12 @@ export function AdvanceSection({
     try {
       setLoading(true);
       setError(null);
-      const advances = await advanceService.getAdvancesByEmployee(employeeId);
+      const advances = await advanceService.getAdvancesByEmployee(employeeId, undefined, undefined, !applyCutoff);
       setCurrentAdvances(advances);
     } catch (err) {
       console.error('Error fetching advances:', err);
       setError(
-        err instanceof Error ? err.message : 'Error al cargar adelantos'
+        err instanceof Error ? err.message : 'Error al cargar anticipos'
       );
     } finally {
       setLoading(false);
@@ -135,7 +113,7 @@ export function AdvanceSection({
     setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
     try {
-      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
       const advances = await advanceService.getAdvancesByEmployee(
         employeeId,
         startDate,
@@ -290,7 +268,7 @@ export function AdvanceSection({
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { startDate, endDate } = getMonthRange(monthsAgo);
+          const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
           const advances = await advanceService.getAdvancesByEmployee(
             employeeId,
             startDate,
@@ -386,7 +364,7 @@ export function AdvanceSection({
       <section className="flex flex-col gap-6 p-4">
         <div className="flex items-center justify-center p-8">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Cargando adelantos...</span>
+          <span className="ml-2">Cargando anticipos...</span>
         </div>
       </section>
     );
@@ -416,6 +394,7 @@ export function AdvanceSection({
           employeeId={employeeId}
           advance={editingAdvance || undefined}
           useReplaceMode={useReplaceMode}
+          isDisassociated={isDisassociated}
           onSave={handleAdvanceSaved}
           onCancel={() => handleDialogChange(false)}
         />
@@ -489,7 +468,7 @@ export function AdvanceSection({
 
       <div className="flex justify-between">
         <div>
-          <span className="text-xl font-bold">Adelantos de Salario</span>
+          <span className="text-xl font-bold">Anticipos de Salario</span>
           {employeeName && (
             <p className="text-sm text-muted-foreground">{employeeName}</p>
           )}
@@ -506,7 +485,7 @@ export function AdvanceSection({
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-600" />
               <span className="text-sm text-muted-foreground">
-                Adelantos del mes
+                Anticipos del mes
               </span>
             </div>
             <span className="text-2xl font-semibold">
@@ -518,7 +497,7 @@ export function AdvanceSection({
         <Card className="rounded-2xl shadow-md bg-green-50">
           <CardContent className="p-6 flex flex-col gap-2">
             <span className="text-sm text-muted-foreground">
-              Total Adelantos
+              Total Anticipos
             </span>
             <span className="text-2xl font-bold text-green-700">
               {formatCurrency(totalAmount)}
@@ -530,7 +509,7 @@ export function AdvanceSection({
       {currentAdvances.length > 0 ? (
         <section className="flex flex-col gap-2 rounded-xl border p-4">
           <span className="text-lg font-semibold">
-            Adelantos del mes actual
+            Anticipos del mes actual
           </span>
           <Separator />
 
@@ -542,7 +521,7 @@ export function AdvanceSection({
         <div className="text-center p-8 border rounded-xl">
           <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground mb-4">
-            No hay adelantos registrados este mes
+            No hay anticipos registrados este mes
           </p>
           <Button onClick={() => setDialogOpen(true)} variant="outline">
             <Plus className="mr-2 h-4 w-4" />
@@ -557,7 +536,7 @@ export function AdvanceSection({
         <span className="text-lg font-semibold">Meses anteriores</span>
 
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
-          const { label } = getMonthRange(monthsAgo);
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const advances = monthlyAdvances.get(monthsAgo);
@@ -608,7 +587,7 @@ export function AdvanceSection({
                     </div>
                   ) : (
                     <p className="text-center text-muted-foreground p-4">
-                      No hay adelantos en este mes
+                      No hay anticipos en este mes
                     </p>
                   )}
                 </div>

@@ -10,11 +10,14 @@ export class VacationService {
     return httpClient.post<VacationResponse>(this.BASE_URL, vacationCreateRequest);
   }
 
-  async getVacationsByEmployee(employeeId: string, startDate?: string, endDate?: string): Promise<VacationResponse[]> {
+  async getVacationsByEmployee(employeeId: string, startDate?: string, endDate?: string, useActualDate?: boolean): Promise<VacationResponse[]> {
     const params = new URLSearchParams({
       ...(startDate && { startDate }),
       ...(endDate && { endDate })
     });
+    if (useActualDate !== undefined && useActualDate !== null) {
+      params.append('useActualDate', useActualDate.toString());
+    }
     const url = `${this.BASE_URL}/employees/${employeeId}${params.toString() ? `?${params}` : ''}`;
     return httpClient.get<VacationResponse[]>(url);
   }

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subMonths } from 'date-fns';
+import { MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 import { es } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -59,6 +60,7 @@ interface VacationFormProps {
   vacation?: VacationResponse;
   onSave?: (vacation: VacationResponse) => void;
   onCancel?: () => void;
+  isDisassociated?: boolean;
 }
 
 export function VacationForm({
@@ -66,6 +68,7 @@ export function VacationForm({
   vacation,
   onSave,
   onCancel,
+  isDisassociated,
 }: VacationFormProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!vacation;
@@ -197,18 +200,33 @@ export function VacationForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    locale={es}
+                    defaultMonth={(() => {
+                      const now = new Date();
+                      if (isDisassociated) return now;
+                      if (now.getDate() <= MONTH_CUTOFF_DAY)
+                        return subMonths(now, 1);
+                      return now;
+                    })()}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     disabled={(date) => {
-                      // No permitir fechas muy antiguas
                       if (date < new Date('1900-01-01')) return true;
 
-                      // No permitir fechas futuras
                       const today = new Date();
                       if (date > today) return true;
 
                       return false;
                     }}
                     initialFocus
-                    locale={es}
                   />
                 </PopoverContent>
               </Popover>
@@ -248,18 +266,33 @@ export function VacationForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    locale={es}
+                    defaultMonth={(() => {
+                      const now = new Date();
+                      if (isDisassociated) return now;
+                      if (now.getDate() <= MONTH_CUTOFF_DAY)
+                        return subMonths(now, 1);
+                      return now;
+                    })()}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     disabled={(date) => {
-                      // No permitir fechas muy antiguas
                       if (date < new Date('1900-01-01')) return true;
 
-                      // La fecha de fin debe ser mayor o igual a la fecha de inicio
                       const start = form.watch('startDate');
                       if (start && date < start) return true;
 
                       return false;
                     }}
                     initialFocus
-                    locale={es}
                   />
                 </PopoverContent>
               </Popover>

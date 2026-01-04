@@ -153,7 +153,7 @@ export const generatePDF = (data: any[], totals: any, title: string, period?: st
 
           'Permisos',
           'Faltas',
-          'Adelantos',
+          'Anticipos',
           'Otros',
           'AFP',
 
@@ -196,7 +196,7 @@ export const generatePDF = (data: any[], totals: any, title: string, period?: st
           data.column.index <= 14
         ) {
           const cell = data.cell;
-          const titles = ['Permisos', 'Faltas', 'Adelantos', 'Otros', 'AFP'];
+          const titles = ['Permisos', 'Faltas', 'Anticipos', 'Otros', 'AFP'];
           const title = titles[data.column.index - 10];
 
           doc.setFontSize(5.5);

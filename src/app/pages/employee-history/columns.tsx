@@ -161,20 +161,20 @@ export const historyColumns: ColumnDef<GroupedHistoryRow>[] = [
                 <div className="text-sm font-medium text-gray-900 mb-1">
                   {formatFieldName(change.fieldName)}
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
+                <div className="flex flex-col gap-1 text-xs">
+                  <div className="break-words">
                     <span className="text-muted-foreground font-medium">
                       Anterior:{' '}
                     </span>
-                    <span className="text-red-600">
+                    <span className="text-red-600 break-all">
                       {change.oldValue || '-'}
                     </span>
                   </div>
-                  <div>
+                  <div className="break-words">
                     <span className="text-muted-foreground font-medium">
                       Nuevo:{' '}
                     </span>
-                    <span className="text-green-600">
+                    <span className="text-green-600 break-all">
                       {change.newValue || '-'}
                     </span>
                   </div>

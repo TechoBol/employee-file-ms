@@ -37,22 +37,28 @@ import type { DepartmentResponse } from '@/rest-client/interface/response/Depart
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 import { BranchService } from '@/rest-client/services/BranchService';
 import type { BranchResponse } from '@/rest-client/interface/response/BranchResponse';
+import { es } from 'date-fns/locale';
 
 const formSchema = z.object({
-  firstName: z.string()
+  firstName: z
+    .string()
     .min(2, 'Nombre requerido')
     .max(150, 'El nombre no puede exceder los 150 caracteres'),
-  lastName: z.string()
+  lastName: z
+    .string()
     .min(2, 'Apellido requerido')
     .max(150, 'El apellido no puede exceder los 150 caracteres'),
-  ci: z.string()
+  ci: z
+    .string()
     .min(5, 'CI requerido')
     .max(15, 'El CI no puede exceder los 20 caracteres'),
   email: z.string().email('Correo inválido'),
-  phone: z.string()
+  phone: z
+    .string()
     .min(7, 'Teléfono requerido')
     .max(20, 'El teléfono no puede exceder los 20 caracteres'),
-  address: z.string()
+  address: z
+    .string()
     .min(5, 'Dirección requerida')
     .max(180, 'La dirección no puede exceder los 180 caracteres'),
   birthDate: z.date({ error: 'Fecha de nacimiento requerida' }),
@@ -307,7 +313,22 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                         selected={
                           field.value ? new Date(field.value) : undefined
                         }
+                        defaultMonth={
+                          field.value ? new Date(field.value) : new Date()
+                        }
+                        locale={es}
                         captionLayout="dropdown"
+                        formatters={{
+                          formatCaption: (date) => {
+                            const formatted = format(date, 'LLLL yyyy', {
+                              locale: es,
+                            });
+                            return (
+                              formatted.charAt(0).toUpperCase() +
+                              formatted.slice(1)
+                            );
+                          },
+                        }}
                         onSelect={(date) => field.onChange(date)}
                         disabled={(date) =>
                           date > new Date() || date < new Date('1900-01-01')
@@ -537,7 +558,22 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                     <Calendar
                       mode="single"
                       selected={field.value ? new Date(field.value) : undefined}
+                      defaultMonth={
+                        field.value ? new Date(field.value) : new Date()
+                      }
+                      locale={es}
                       captionLayout="dropdown"
+                      formatters={{
+                        formatCaption: (date) => {
+                          const formatted = format(date, 'LLLL yyyy', {
+                            locale: es,
+                          });
+                          return (
+                            formatted.charAt(0).toUpperCase() +
+                            formatted.slice(1)
+                          );
+                        },
+                      }}
                       onSelect={(date) => field.onChange(date)}
                       disabled={(date) => date > new Date()}
                       autoFocus

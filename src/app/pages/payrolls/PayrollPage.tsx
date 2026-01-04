@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Calculator, Printer } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { DataTable } from '@/app/shared/components/DataTable';
 import { PayrollService } from '@/rest-client/services/PayrollService';
 import type {
@@ -33,6 +33,7 @@ import { currentColumns, historicalColumns } from './columns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmployeeFilters } from '../employees/EmployeeFilters';
 import { formatCurrency, generatePDF } from './functions/generatePdf';
+import { MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 
 const payrollService = new PayrollService();
 const paymentService = new PaymentService();
@@ -40,7 +41,7 @@ const paymentService = new PaymentService();
 const deductionLabels: Record<string, string> = {
   PERMISSION: 'Permisos',
   ABSENCE: 'Faltas',
-  ADVANCE: 'Adelantos',
+  ADVANCE: 'Anticipos',
   RC_IVA: 'RC-IVA',
 };
 
@@ -51,9 +52,21 @@ const formatMonthYear = (date: Date) => {
   });
 };
 
-const getPeriodInfo = (monthsAgo: number) => {
+const getPeriodInfo = (monthsAgo: number, applyCutoff: boolean = true) => {
   const now = new Date();
-  const targetDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+
+  // Aplicar lógica de cutoff: si estamos dentro de los primeros X días del mes,
+  // considerar el mes anterior como "mes actual"
+  const adjustedMonthsAgo =
+    applyCutoff && now.getDate() <= MONTH_CUTOFF_DAY
+      ? monthsAgo + 1
+      : monthsAgo;
+
+  const targetDate = new Date(
+    now.getFullYear(),
+    now.getMonth() - adjustedMonthsAgo,
+    1
+  );
   const year = targetDate.getFullYear();
   const month = targetDate.getMonth() + 1;
   const period = year * 100 + month;
@@ -64,9 +77,9 @@ const getPeriodInfo = (monthsAgo: number) => {
   };
 };
 
-const generatePeriods = () => {
+const generatePeriods = (applyCutoff: boolean = true) => {
   return Array.from({ length: 12 }, (_, i) => {
-    const info = getPeriodInfo(i + 1);
+    const info = getPeriodInfo(i + 1, applyCutoff);
     return {
       value: info.period.toString(),
       label: info.label,
@@ -103,7 +116,12 @@ export default function PayrollsPage() {
   const [reprocessing, setReprocessing] = useState(false);
   const [showReprocessDialog, setShowReprocessDialog] = useState(false);
 
-  const periods = generatePeriods();
+  // Regenerar períodos cuando cambia isDisassociated
+  const applyCutoffToHistorical = historicalFilters.isDisassociated !== true;
+  const periods = useMemo(
+    () => generatePeriods(applyCutoffToHistorical),
+    [applyCutoffToHistorical]
+  );
 
   // Verificar si hay filtros activos
   const hasActiveFilters = (filters: EmployeeSearchParams) => {
@@ -167,8 +185,15 @@ export default function PayrollsPage() {
     setHistoricalError(null);
 
     try {
+      console.log('historical Filters:', historicalFilters);
+      // Usar getPeriodInfo con el filtro isDisassociated para determinar si aplicar cutoff
+      const applyCutoff = historicalFilters.isDisassociated !== true;
+      // El cutoff se aplica al generar períodos y al cambiar filtros
+      applyCutoff; // variable usada en handleHistoricalFiltersChange
+      const periodNumber = parseInt(selectedPeriod);
+
       const result = await paymentService.getAllPaymentsByPeriod(
-        parseInt(selectedPeriod),
+        periodNumber,
         historicalFilters // Pasamos los filtros al backend
       );
       setHistoricalData(result);
@@ -200,6 +225,10 @@ export default function PayrollsPage() {
 
   const handleHistoricalFiltersChange = (filters: EmployeeSearchParams) => {
     setHistoricalFilters(filters);
+    // Si cambió isDisassociated, resetear a primer período con nuevo cutoff
+    const applyCutoff = filters.isDisassociated !== true;
+    const { period } = getPeriodInfo(1, applyCutoff);
+    setSelectedPeriod(period.toString());
   };
 
   const handlePeriodChange = (value: string) => {

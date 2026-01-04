@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subMonths } from 'date-fns';
+import { MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/popover';
 import { AdvanceService } from '@/rest-client/services/AdvanceService';
 import type { AdvanceResponse } from '@/rest-client/interface/response/AdvanceResponse';
+import { es } from 'date-fns/locale';
 
 const advanceService = new AdvanceService();
 
@@ -42,6 +44,7 @@ interface AdvanceFormProps {
   useReplaceMode?: boolean;
   onSave?: (advance: AdvanceResponse) => void;
   onCancel?: () => void;
+  isDisassociated?: boolean;
 }
 
 const formatCurrency = (value: number) =>
@@ -57,6 +60,7 @@ export function AdvanceForm({
   useReplaceMode = false,
   onSave,
   onCancel,
+  isDisassociated,
 }: AdvanceFormProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!advance;
@@ -158,10 +162,10 @@ export function AdvanceForm({
     } catch (error) {
       console.error('Error al guardar adelanto:', error);
       toast.error(
-        isEditing 
-          ? useReplaceMode 
-            ? 'Error al reemplazar' 
-            : 'Error al actualizar' 
+        isEditing
+          ? useReplaceMode
+            ? 'Error al reemplazar'
+            : 'Error al actualizar'
           : 'Error al registrar',
         {
           description: (
@@ -238,6 +242,24 @@ export function AdvanceForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    locale={es}
+                    defaultMonth={(() => {
+                      const now = new Date();
+                      if (isDisassociated) return now;
+                      if (now.getDate() <= MONTH_CUTOFF_DAY)
+                        return subMonths(now, 1);
+                      return now;
+                    })()}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     disabled={(date) =>
                       date > new Date() || date < new Date('1900-01-01')
                     }

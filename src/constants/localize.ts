@@ -119,7 +119,7 @@ export const EmployeeDetailsTexts = {
   memos: 'Memorandums',
   permissions: 'Permisos y Faltas',
   vacations: 'Vacaciones',
-  advances: 'Adelantos',
+  advances: 'Anticipos',
   dismissal: 'Desvinculación',
 };
 

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import PdfUploader from '@/app/shared/components/PdfUploader';
+import { es } from 'date-fns/locale';
 
 const formSchema = z.object({
   direccion: z.string().min(1, 'La dirección es requerida'),
@@ -94,6 +95,17 @@ export function PersonalInfoForm() {
                     mode="single"
                     selected={field.value ? parseISO(field.value) : undefined}
                     captionLayout="dropdown"
+                    locale={es}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     onSelect={(date) => {
                       field.onChange(date?.toISOString().split('T')[0]);
                     }}

@@ -21,6 +21,7 @@ import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { MemorandumForm } from './forms/MemorandumForm';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils';
+import { getMonthRange } from '@/lib/date-utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,36 +32,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { format } from 'date-fns';
 
 type MemorandumSectionProps = {
   employeeId: string;
   employeeName?: string;
-};
-
-const formatMonthYear = (date: Date) => {
-  return date.toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-  });
-};
-
-const getMonthRange = (monthsAgo: number) => {
-  const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const endDate = new Date(
-    now.getFullYear(),
-    now.getMonth() - monthsAgo + 1,
-    0,
-    23,
-    59,
-    59
-  );
-  return {
-    startDate: format(startDate, 'yyyy-MM-dd'),
-    endDate: format(endDate, 'yyyy-MM-dd'),
-    label: formatMonthYear(startDate),
-  };
+  isDisassociated?: boolean;
 };
 
 // Función para determinar en qué mes está un memorándum
@@ -79,7 +55,9 @@ const memorandumService = new MemorandumService();
 export function MemorandumSection({
   employeeId,
   employeeName,
+  isDisassociated,
 }: MemorandumSectionProps) {
+  const applyCutoff = !isDisassociated;
   const [currentMemorandums, setCurrentMemorandums] = useState<
     MemorandumResponse[]
   >([]);
@@ -107,7 +85,10 @@ export function MemorandumSection({
       setLoading(true);
       setError(null);
       const memorandums = await memorandumService.getMemorandumsByEmployee(
-        employeeId
+        employeeId,
+        undefined,
+        undefined,
+        !applyCutoff
       );
       setCurrentMemorandums(memorandums);
     } catch (err) {
@@ -124,7 +105,7 @@ export function MemorandumSection({
     setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
     try {
-      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
       const memorandums = await memorandumService.getMemorandumsByEmployee(
         employeeId,
         startDate,
@@ -242,7 +223,7 @@ export function MemorandumSection({
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { startDate, endDate } = getMonthRange(monthsAgo);
+          const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
           const memorandums = await memorandumService.getMemorandumsByEmployee(
             employeeId,
             startDate,
@@ -370,6 +351,7 @@ export function MemorandumSection({
           memorandum={editingMemorandum || undefined}
           onSave={handleMemorandumSaved}
           onCancel={() => handleDialogChange(false)}
+          isDisassociated={isDisassociated}
         />
       </ReusableDialog>
 
@@ -480,7 +462,7 @@ export function MemorandumSection({
         <span className="text-lg font-semibold">Meses anteriores</span>
 
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
-          const { label } = getMonthRange(monthsAgo);
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const memorandums = monthlyMemorandums.get(monthsAgo);

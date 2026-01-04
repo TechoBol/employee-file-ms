@@ -17,6 +17,7 @@ import type {
   PaymentDetailsResponse,
 } from '@/rest-client/interface/response/PaymentResponse';
 import { PaymentService } from '@/rest-client/services/PaymentService';
+import { getMonthRange, MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 
 type SalarySummaryProps = {
   employeeId: string;
@@ -37,12 +38,17 @@ const formatMonthYear = (date: Date) => {
   });
 };
 
-const getPeriodInfo = (monthsAgo: number) => {
+const getPeriodInfo = (monthsAgo: number, applyCutoff: boolean = true) => {
   const now = new Date();
-  const targetDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+  const effectiveMonth =
+    applyCutoff && now.getDate() < MONTH_CUTOFF_DAY
+      ? now.getMonth() - 1
+      : now.getMonth();
+
+  const targetDate = new Date(now.getFullYear(), effectiveMonth - monthsAgo, 1);
   const year = targetDate.getFullYear();
-  const month = targetDate.getMonth() + 1; // 1-12
-  const period = year * 100 + month; // Formato: 202510
+  const month = targetDate.getMonth() + 1;
+  const period = year * 100 + month;
 
   return {
     period,
@@ -64,6 +70,8 @@ export function SalarySummary({
   employeeId,
   isDisassociated,
 }: SalarySummaryProps) {
+  const applyCutoff = !isDisassociated;
+
   const [baseSalary, setBaseSalary] = useState<BaseSalaryResponse | null>(null);
   const [payroll, setPayroll] = useState<PayrollResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +79,6 @@ export function SalarySummary({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContentType>(null);
 
-  // Estados para historial
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlyPayments, setMonthlyPayments] = useState<
     Map<number, PaymentDetailsResponse[] | null>
@@ -122,7 +129,7 @@ export function SalarySummary({
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { period } = getPeriodInfo(monthsAgo);
+          const { period } = getPeriodInfo(monthsAgo, applyCutoff);
           const payments = await paymentService.getPaymentsByEmployeeAndPeriod(
             employeeId,
             period
@@ -521,7 +528,7 @@ export function SalarySummary({
         <span className="text-lg font-semibold">Meses anteriores</span>
 
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
-          const { label } = getPeriodInfo(monthsAgo);
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const payments = monthlyPayments.get(monthsAgo);
