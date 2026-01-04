@@ -12,11 +12,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { BaseSalaryForm } from './forms/BaseSalaryForm';
 import { PayrollService } from '@/rest-client/services/PayrollService';
-import type { PaymentDeductionResponse, PaymentDetailsResponse } from '@/rest-client/interface/response/PaymentResponse';
+import type {
+  PaymentDeductionResponse,
+  PaymentDetailsResponse,
+} from '@/rest-client/interface/response/PaymentResponse';
 import { PaymentService } from '@/rest-client/services/PaymentService';
+import { getMonthRange, MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 
 type SalarySummaryProps = {
   employeeId: string;
+  isDisassociated: boolean;
 };
 
 const formatCurrency = (value: number) =>
@@ -33,12 +38,17 @@ const formatMonthYear = (date: Date) => {
   });
 };
 
-const getPeriodInfo = (monthsAgo: number) => {
+const getPeriodInfo = (monthsAgo: number, applyCutoff: boolean = true) => {
   const now = new Date();
-  const targetDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+  const effectiveMonth =
+    applyCutoff && now.getDate() < MONTH_CUTOFF_DAY
+      ? now.getMonth() - 1
+      : now.getMonth();
+
+  const targetDate = new Date(now.getFullYear(), effectiveMonth - monthsAgo, 1);
   const year = targetDate.getFullYear();
-  const month = targetDate.getMonth() + 1; // 1-12
-  const period = year * 100 + month; // Formato: 202510
+  const month = targetDate.getMonth() + 1;
+  const period = year * 100 + month;
 
   return {
     period,
@@ -56,7 +66,12 @@ type DeductionsByType = {
   [key: string]: PayrollDeductionResponse[] | PaymentDeductionResponse[];
 };
 
-export function SalarySummary({ employeeId }: SalarySummaryProps) {
+export function SalarySummary({
+  employeeId,
+  isDisassociated,
+}: SalarySummaryProps) {
+  const applyCutoff = !isDisassociated;
+
   const [baseSalary, setBaseSalary] = useState<BaseSalaryResponse | null>(null);
   const [payroll, setPayroll] = useState<PayrollResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +79,6 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContentType>(null);
 
-  // Estados para historial
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlyPayments, setMonthlyPayments] = useState<
     Map<number, PaymentDetailsResponse[] | null>
@@ -79,7 +93,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
 
         const [salary, payrollData] = await Promise.all([
           baseSalaryService.getBaseSalaryByEmployee(employeeId),
-          payrollService.getPayrollsByEmployeeId(employeeId),
+          payrollService.getPayrollsByEmployeeId(employeeId, isDisassociated),
         ]);
 
         setBaseSalary(salary);
@@ -115,7 +129,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { period } = getPeriodInfo(monthsAgo);
+          const { period } = getPeriodInfo(monthsAgo, applyCutoff);
           const payments = await paymentService.getPaymentsByEmployeeAndPeriod(
             employeeId,
             period
@@ -140,27 +154,27 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
     setDialogOpen(true);
   };
 
-  const handleBaseSalaryCreated = async (newBaseSalary: BaseSalaryResponse) => {
-    setBaseSalary(newBaseSalary);
+  const handleBaseSalaryUpdated = async (
+    updatedBaseSalary: BaseSalaryResponse
+  ) => {
+    setBaseSalary(updatedBaseSalary);
     setDialogOpen(false);
 
-    // Refetch payroll después de actualizar el salario base
     try {
       const updatedPayroll = await payrollService.getPayrollsByEmployeeId(
-        employeeId
+        employeeId,
+        isDisassociated
       );
       setPayroll(updatedPayroll);
-
-      toast.success('Salario base actualizado', {
-        description: `Se actualizó correctamente: ${formatCurrency(
-          newBaseSalary.amount
-        )}`,
-      });
     } catch (err) {
       console.error('Error refetching payroll:', err);
       toast.error('Error al actualizar el payroll', {
-        description:
-          'El salario base se guardó pero hubo un error al actualizar los cálculos',
+        description: (
+          <p className="text-slate-700 select-none">
+            El salario base se guardó pero hubo un error al actualizar los
+            cálculos
+          </p>
+        ),
       });
     }
   };
@@ -218,7 +232,8 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
         return (
           <BaseSalaryForm
             employeeId={employeeId}
-            onSave={handleBaseSalaryCreated}
+            onSave={handleBaseSalaryUpdated}
+            baseSalary={baseSalary}
           />
         );
       case 'DEDUCTION':
@@ -226,12 +241,12 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
       default:
         return null;
     }
-  }, [dialogContent, employeeId]);
+  }, [dialogContent, employeeId, baseSalary]);
 
   const getDialogTitle = () => {
     switch (dialogContent) {
       case 'BASE_SALARY':
-        return 'Crear Salario Base';
+        return baseSalary ? 'Actualizar Salario Base' : 'Crear Salario Base';
       case 'DEDUCTION':
         return 'Registrar Deducción';
       default:
@@ -242,7 +257,9 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
   const getDialogDescription = () => {
     switch (dialogContent) {
       case 'BASE_SALARY':
-        return 'Establece el salario base para el empleado';
+        return baseSalary
+          ? 'Modifica el salario base del empleado'
+          : 'Establece el salario base para el empleado';
       case 'DEDUCTION':
         return 'Ingresa los detalles de la deducción';
       default:
@@ -284,7 +301,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
             <div className="flex justify-between text-sm">
               <span>
                 Bono de Antigüedad ({payment.seniorityYears} años ×{' '}
-                {(payment.seniorityIncreasePercentage * 100).toFixed(0)}%)
+                {payment.seniorityIncreasePercentage}%)
               </span>
               <span className="font-medium">
                 {formatCurrency(payment.seniorityBonus)}
@@ -309,7 +326,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
         </div>
 
         {/* Otras deducciones */}
-        {payment.totalDeduction > 0 && (
+        {payment.totalDeductions > 0 && (
           <>
             <Separator className="my-2" />
             <span className="text-sm font-medium text-red-600">
@@ -442,7 +459,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
               <div className="flex justify-between text-sm">
                 <span>
                   Bono de Antigüedad ({payroll.seniorityYears} años ×{' '}
-                  {(payroll.seniorityIncreasePercentage * 100).toFixed(0)}%)
+                  {payroll.seniorityIncreasePercentage}%)
                 </span>
                 <span className="font-medium">
                   {formatCurrency(payroll.seniorityBonus)}
@@ -511,7 +528,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
         <span className="text-lg font-semibold">Meses anteriores</span>
 
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
-          const { label } = getPeriodInfo(monthsAgo);
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const payments = monthlyPayments.get(monthsAgo);

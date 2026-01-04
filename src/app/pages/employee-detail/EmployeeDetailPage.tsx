@@ -5,21 +5,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PersonalInfo } from './components/PersonalInfo';
 import { EmployeeDetailsTexts } from '@/constants/localize';
 import { Card, CardContent } from '@/components/ui/card';
-import { NotPageYet } from './components/NotPageYet';
 import { SalarySummary } from './components/SalarySummary';
 import { AbsencePermissionSection } from './components/AbsencePermissionSection';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 import { AdvanceSection } from './components/AdvanceSection';
 import { VacationSection } from './components/VacationSection';
 import { MemorandumSection } from './components/MemorandumSection';
+import { EmployeeService } from '@/rest-client/services/EmployeeService';
+import { SalaryEventsSection } from './components/SalaryEventsSection';
+import { EmployeeDisassociationSection } from './components/EmployeeDisassociationSection';
 
-const employeeService = new (
-  await import('@/rest-client/services/EmployeeService')
-).EmployeeService();
+const employeeService = new EmployeeService();
 
 export function EmployeeDetailPage() {
   const { employeeId } = useParams();
   const [employee, setEmployee] = useState<EmployeeResponse | null>(null);
+
+  const handleEmployeeUpdate = (updatedEmployee: EmployeeResponse) => {
+    setEmployee(updatedEmployee);
+  };
 
   const tabItems = [
     {
@@ -32,7 +36,10 @@ export function EmployeeDetailPage() {
       value: 'salary',
       label: EmployeeDetailsTexts.salary,
       content: employee?.hireDate ? (
-        <SalarySummary employeeId={employeeId!} />
+        <SalarySummary
+          employeeId={employeeId!}
+          isDisassociated={employee.isDisassociated}
+        />
       ) : (
         <div className="text-red-600">Hire date not available.</div>
       ),
@@ -41,32 +48,69 @@ export function EmployeeDetailPage() {
     {
       value: 'memos',
       label: EmployeeDetailsTexts.memos,
-      content: <MemorandumSection employeeId={employeeId!} />,
+      content: (
+        <MemorandumSection
+          employeeId={employeeId!}
+          isDisassociated={employee?.isDisassociated}
+        />
+      ),
       disabled: false,
     },
     {
       value: 'permissions',
       label: EmployeeDetailsTexts.permissions,
-      content: <AbsencePermissionSection employeeId={employeeId!} />,
+      content: (
+        <AbsencePermissionSection
+          employeeId={employeeId!}
+          isDisassociated={employee?.isDisassociated}
+        />
+      ),
       disabled: false,
     },
     {
       value: 'vacations',
       label: EmployeeDetailsTexts.vacations,
-      content: <VacationSection employeeId={employeeId!} />,
+      content: (
+        <VacationSection
+          employeeId={employeeId!}
+          isDisassociated={employee?.isDisassociated}
+        />
+      ),
       disabled: false,
     },
     {
       value: 'advances',
       label: EmployeeDetailsTexts.advances,
-      content: <AdvanceSection employeeId={employeeId!} />,
+      content: (
+        <AdvanceSection
+          employeeId={employeeId!}
+          isDisassociated={employee?.isDisassociated}
+        />
+      ),
+      disabled: false,
+    },
+    {
+      value: 'others',
+      label: EmployeeDetailsTexts.others,
+      content: (
+        <SalaryEventsSection
+          employeeId={employeeId!}
+          isDisassociated={employee?.isDisassociated}
+        />
+      ),
       disabled: false,
     },
     {
       value: 'dismissal',
       label: EmployeeDetailsTexts.dismissal,
-      content: <NotPageYet />,
-      disabled: true,
+      content: (
+        <EmployeeDisassociationSection
+          employee={employee!}
+          onDisassociate={handleEmployeeUpdate}
+          onAssociate={handleEmployeeUpdate}
+        />
+      ),
+      disabled: false,
     },
   ];
 

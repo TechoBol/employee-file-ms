@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { PaginationState, OnChangeFn } from '@tanstack/react-table';
-import type { TableFilters } from '@/app/shared/interfaces/table';
 import { ErrorTexts } from '@/constants/localize';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 import { EmployeeService } from '@/rest-client/services/EmployeeService';
+import type { EmployeeSearchParams } from '@/rest-client/interface/request/EmployeeSearchParams';
 
 interface UseDataTableReturn<T> {
   data: T[];
@@ -11,12 +11,10 @@ interface UseDataTableReturn<T> {
   error: string | null;
   pagination: PaginationState;
   pageCount: number;
-  searchValue: string;
-  filters: TableFilters;
+  filters: EmployeeSearchParams;
   setData: (data: T[]) => void;
   setPagination: OnChangeFn<PaginationState>;
-  setSearchValue: (search: string) => void;
-  setFilters: (filters: TableFilters) => void;
+  setFilters: (filters: EmployeeSearchParams) => void;
   refetch: () => void;
 }
 
@@ -26,17 +24,18 @@ export function useDataTable<T>({
   endpoint,
   initialPageSize = 10,
   initialFilters = {},
+  dependencies = [],
 }: {
   endpoint: string;
   initialPageSize?: number;
-  initialFilters?: TableFilters;
+  initialFilters?: EmployeeSearchParams;
+  dependencies?: unknown[];
 }): UseDataTableReturn<T> {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pageCount, setPageCount] = useState(0);
-  const [searchValue, setSearchValue] = useState('');
-  const [filters, setFilters] = useState<TableFilters>(initialFilters);
+  const [filters, setFilters] = useState<EmployeeSearchParams>(initialFilters);
   const [pagination, setPaginationState] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: initialPageSize,
@@ -65,14 +64,15 @@ export function useDataTable<T>({
 
         const result = await employeeService.getEmployees(
           pagination.pageIndex,
-          pagination.pageSize
+          pagination.pageSize,
+          filters
         );
 
         setData(result.content as T[]);
         setPageCount(result.page.totalPages);
       }
     } catch (err) {
-      console.error('Error fetching employee details:', err);
+      console.error('Error fetching data:', err);
       setError(err instanceof Error ? err.message : ErrorTexts.genericError);
       setData([]);
       setPageCount(0);
@@ -83,20 +83,23 @@ export function useDataTable<T>({
     endpoint,
     pagination.pageIndex,
     pagination.pageSize,
-    searchValue,
+    filters,
     companyId,
+    ...dependencies,
   ]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const handleSearchChange = useCallback((search: string) => {
-    setSearchValue(search);
-    setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
-  }, []);
+  useEffect(() => {
+    setPaginationState({
+      pageIndex: 0,
+      pageSize: initialPageSize,
+    });
+  }, [companyId, initialPageSize]);
 
-  const handleFiltersChange = useCallback((newFilters: TableFilters) => {
+  const handleFiltersChange = useCallback((newFilters: EmployeeSearchParams) => {
     setFilters(newFilters);
     setPaginationState((prev) => ({ ...prev, pageIndex: 0 }));
   }, []);
@@ -107,11 +110,9 @@ export function useDataTable<T>({
     error,
     pagination,
     pageCount,
-    searchValue,
     filters,
     setData,
     setPagination,
-    setSearchValue: handleSearchChange,
     setFilters: handleFiltersChange,
     refetch: fetchData,
   };

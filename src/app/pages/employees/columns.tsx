@@ -1,8 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnsTexts } from '@/constants/localize';
-import { formatDate, formatDateHireDate } from '@/lib/formatters';
+import { formatDateHireDate } from '@/lib/formatters';
 import { Actions } from './Actions';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
+import { formatDate } from '@/lib/utils';
 
 export const columns: ColumnDef<EmployeeResponse>[] = [
   {
@@ -11,9 +12,8 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
       <span className="pl-4">{DataTableColumnsTexts.employee}</span>
     ),
     cell: ({ row }) => {
-      const { firstName, lastName, hireDate } = row.original;
-      const formattedDate = formatDate(hireDate, 'es-ES');
-
+      const { firstName, lastName, hireDate, branchName } = row.original;
+      const formattedDate = formatDate(hireDate);
       return (
         <section className="pl-4">
           <span className="font-medium">
@@ -25,24 +25,52 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
               {formattedDate}
             </span>
           </span>
+          <span className="block">
+            <span className="text-sm font-medium">
+              {branchName ?? 'Sucursal No definida'}
+            </span>
+          </span>
         </section>
       );
     },
   },
   {
-    accessorKey: 'department',
+    accessorKey: 'status',
+    header: DataTableColumnsTexts.status,
+    cell: ({ row }) => {
+      const isActive = row.getValue('status') === 'ACTIVE';
+      return (
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+            isActive
+              ? 'bg-green-100 text-green-800'
+              : 'bg-orange-100 text-orange-500'
+          }`}
+        >
+          {isActive ? 'Activo' : 'Inactivo'}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'departmentName',
     header: DataTableColumnsTexts.department,
     cell: ({ row }) => {
       const { departmentName } = row.original;
 
-      return <span className="text-muted-foreground">{departmentName}</span>;
+      return (
+        <span className="text-muted-foreground">
+          {departmentName ?? 'No definido'}
+        </span>
+      );
     },
   },
   {
     accessorKey: 'positionName',
     header: DataTableColumnsTexts.position,
     cell: ({ row }) => {
-      const position = row.getValue('positionName') as string;
+      const position =
+        (row.getValue('positionName') as string) ?? 'No definido';
       return (
         <span className="text-muted-foreground">
           {position?.charAt(0).toUpperCase() + position?.slice(1)}

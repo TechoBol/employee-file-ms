@@ -4,4 +4,5 @@ export interface AdvanceResponse {
   amount: number;
   percentageAmount: number;
   advanceDate: string;
+  processed: boolean;
 }

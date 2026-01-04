@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/form';
 import { toast } from 'sonner';
 import type { BranchResponse } from '@/rest-client/interface/response/BranchResponse';
+import { BranchService } from '@/rest-client/services/BranchService';
 
 const BOLIVIAN_CITIES = [
   'La Paz',
@@ -35,14 +36,18 @@ const BOLIVIAN_CITIES = [
   'Pando',
 ];
 
-const branchService = new (
-  await import('@/rest-client/services/BranchService')
-).BranchService();
+const branchService = new BranchService();
 
 const formSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  description: z.string().min(1, 'La descripción es obligatoria'),
-  location: z.string().min(2, 'La ubicación es obligatoria'),
+  name: z.string()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(100, 'El nombre no puede exceder los 100 caracteres'),
+  description: z.string()
+    .min(1, 'La descripción es obligatoria')
+    .max(250, 'La descripción no puede exceder los 250 caracteres'),
+  location: z.string()
+    .min(2, 'La ubicación es obligatoria')
+    .max(180, 'La ubicación no puede exceder los 180 caracteres'),
   city: z.string().min(1, 'La ciudad es obligatoria'),
   country: z.literal('Bolivia', { message: 'El país debe ser Bolivia' }),
 });
@@ -50,11 +55,13 @@ const formSchema = z.object({
 type BranchFormValues = z.infer<typeof formSchema>;
 
 interface BranchFormProps {
-  onSave?: (newBranch: BranchResponse) => void;
+  onSave?: (branch: BranchResponse) => void;
+  branch?: BranchResponse | null;
 }
 
-export default function BranchForm({ onSave }: BranchFormProps) {
+export default function BranchForm({ onSave, branch }: BranchFormProps) {
   const [loading, setLoading] = useState(false);
+  const isEditing = !!branch;
 
   const form = useForm<BranchFormValues>({
     resolver: zodResolver(formSchema),
@@ -67,28 +74,75 @@ export default function BranchForm({ onSave }: BranchFormProps) {
     },
   });
 
+  useEffect(() => {
+    if (branch) {
+      form.reset({
+        name: branch.name,
+        description: branch.description || '',
+        location: branch.location,
+        city: branch.city,
+        country: 'Bolivia',
+      });
+    } else {
+      form.reset({
+        name: '',
+        description: '',
+        location: '',
+        city: '',
+        country: 'Bolivia',
+      });
+    }
+  }, [branch, form]);
+
   const onSubmit = async (values: BranchFormValues) => {
     try {
       setLoading(true);
 
-      const newBranch = await branchService.createBranch({
-        ...values,
-      });
+      let result: BranchResponse;
 
-      toast('Sucursal creada', {
-        description: `Se creó correctamente: ${newBranch.name}`,
-      });
+      if (isEditing && branch) {
+        // Actualizar sucursal existente
+        result = await branchService.patchBranch(branch.id, {
+          ...values,
+        });
+
+        toast.success('Sucursal actualizada', {
+          description: (
+            <p className="text-slate-700 select-none">{`${result.name} fue actualizada correctamente`}</p>
+          ),
+        });
+      } else {
+        // Crear nueva sucursal
+        result = await branchService.createBranch({
+          ...values,
+        });
+
+        toast.success('Sucursal creada', {
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se creó correctamente: ${result.name}`}
+            </p>
+          ),
+        });
+      }
 
       if (onSave) {
-        onSave(newBranch);
+        onSave(result);
       }
 
       form.reset();
     } catch (error) {
-      console.error('Error al crear la sucursal:', error);
-      toast.error('Error al crear la sucursal', {
-        description: 'Ocurrió un error al intentar guardar.',
-      });
+      console.error('Error al guardar la sucursal:', error);
+      toast.error(
+        isEditing ? 'Error al actualizar' : 'Error al crear la sucursal',
+        {
+          description: (
+            <p className="text-slate-700 select-none">
+              {'Ocurrió un error al intentar guardar.'}
+            </p>
+          ),
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -199,7 +253,11 @@ export default function BranchForm({ onSave }: BranchFormProps) {
         />
 
         <Button type="submit" disabled={loading}>
-          {loading ? 'Guardando...' : 'Crear sucursal'}
+          {loading
+            ? 'Guardando...'
+            : isEditing
+            ? 'Actualizar sucursal'
+            : 'Crear sucursal'}
         </Button>
       </form>
     </Form>

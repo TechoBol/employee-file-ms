@@ -2,6 +2,7 @@ import type { PayrollEmployeeResponse } from '@/rest-client/interface/response/P
 import { Actions } from './Actions';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { PaymentEmployeeResponse } from '@/rest-client/interface/response/PaymentResponse';
+import { formatDate } from '@/lib/utils';
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('es-BO', {
@@ -11,29 +12,70 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+const deductionLabels: Record<string, string> = {
+  ADVANCE: 'Anticipos',
+  AFP: 'Gestora',
+  ABSENCE: 'Faltas',
+  PERMISSION: 'Permisos',
+  OTHER: 'Otros',
+};
+
 export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
   {
     id: 'employee',
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
-      const { firstName, lastName, ci } = row.original.employee;
+      const { firstName, lastName, ci, branchName, status } =
+        row.original.employee;
+      const position = row.original.employee.positionName || 'Sin cargo';
+      const isActive = status === 'ACTIVE';
       return (
-        <section className="pl-4">
-          <span className="font-medium">
-            {firstName} {lastName}
+        <section className="pl-4 min-w-[200px]">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">
+              {firstName} {lastName}
+            </span>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                isActive
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-orange-100 text-orange-500'
+              }`}
+            >
+              {isActive ? 'Activo' : 'Inactivo'}
+            </span>
+          </div>
+          <span className="text-sm text-muted-foreground block">CI: {ci}</span>
+          <span>
+            <span className="text-sm font-medium">{branchName}</span>
+            <span className="text-xs text-muted-foreground">
+              {` | `}
+              {position}
+            </span>
           </span>
-          <span className="block text-sm text-muted-foreground">CI: {ci}</span>
         </section>
       );
     },
   },
   {
+    accessorKey: 'employee.hireDate',
+    header: 'Fecha de Ingreso',
+    cell: ({ row }) => {
+      const hireDate = row.original.employee.hireDate;
+      return (
+        <span className="text-sm text-muted-foreground">
+          {formatDate(hireDate)}
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: 'payroll.baseSalary',
-    header: 'Salario Base',
+    header: 'Haber Básico',
     cell: ({ row }) => {
       const baseSalary = row.original.payroll.baseSalary;
       return (
-        <span className="text-muted-foreground">
+        <span className="text-sm font-medium">
           {formatCurrency(baseSalary)}
         </span>
       );
@@ -44,52 +86,139 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
     header: 'Días Trabajados',
     cell: ({ row }) => {
       const workedDays = row.original.payroll.workedDays;
-      return <span className="text-muted-foreground">{workedDays} días</span>;
+      const workingDaysPerMonth =
+        row.original.payroll.workingDaysPerMonth || 30;
+      return (
+        <div className="text-center">
+          <span className="text-sm font-medium">{workedDays}</span>
+          <span className="text-xs text-muted-foreground block">
+            de {workingDaysPerMonth}
+          </span>
+        </div>
+      );
     },
   },
   {
-    accessorKey: 'payroll.seniorityYears',
-    header: 'Antigüedad',
+    accessorKey: 'payroll.basicEarnings',
+    header: 'Sueldo Básico',
+    cell: ({ row }) => {
+      const basicEarnings = row.original.payroll.basicEarnings;
+      return (
+        <span className="text-sm font-medium">
+          {formatCurrency(basicEarnings)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'payroll.seniorityBonus',
+    header: 'Bono Antigüedad',
     cell: ({ row }) => {
       const seniorityYears = row.original.payroll.seniorityYears;
       const seniorityBonus = row.original.payroll.seniorityBonus;
+      const seniorityPercentage =
+        row.original.payroll.seniorityIncreasePercentage;
       return (
         <div className="flex flex-col">
-          <span className="text-sm text-muted-foreground">
-            {seniorityYears} {seniorityYears === 1 ? 'año' : 'años'}
+          <span className="text-sm font-medium">
+            {formatCurrency(seniorityBonus)}
           </span>
           <span className="text-xs text-muted-foreground">
-            Bono: {formatCurrency(seniorityBonus)}
+            {seniorityYears} {seniorityYears === 1 ? 'año' : 'años'}
+            {` (${seniorityPercentage}%)`}
           </span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'payroll.otherBonuses',
+    header: 'Otros Bonos',
+    cell: ({ row }) => {
+      const otherBonuses = row.original.payroll.otherBonuses;
+      return (
+        <span className="text-sm font-medium text-green-600">
+          {formatCurrency(otherBonuses)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'payroll.totalBonuses',
+    header: 'Total Bonos',
+    cell: ({ row }) => {
+      const otherBonuses = row.original.payroll.totalBonuses;
+      return (
+        <span className="text-sm font-medium text-green-600">
+          {formatCurrency(otherBonuses)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'payroll.totalEarnings',
+    header: 'Total Ganado',
+    cell: ({ row }) => {
+      const totalEarnings = row.original.payroll.totalEarnings;
+      return (
+        <span className="text-sm font-semibold text-green-700">
+          {formatCurrency(totalEarnings)}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'deductions-detail',
+    header: 'Descuentos',
+    cell: ({ row }) => {
+      const deductions = row.original.payroll.deductions || [];
+      const deductionAfp = row.original.payroll.deductionAfp;
+
+      return (
+        <div className="flex flex-col gap-0.5 min-w-[150px]">
+          {/* AFP */}
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Gestora:</span>
+            <span className="font-medium">{formatCurrency(deductionAfp)}</span>
+          </div>
+
+          {/* Otras deducciones */}
+          {deductions.map((deduction, index) => {
+            console.log(deduction);
+            return (
+              <div key={index} className="flex justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {deductionLabels[deduction.type] || deduction.type}:
+                </span>
+                <span className="font-medium">
+                  {formatCurrency(deduction.totalDeduction)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       );
     },
   },
   {
     accessorKey: 'payroll.totalDeductions',
-    header: 'Deducciones',
+    header: 'Total Descuentos',
     cell: ({ row }) => {
       const totalDeductions = row.original.payroll.totalDeductions;
-      const deductionAfp = row.original.payroll.deductionAfp;
       return (
-        <div className="flex flex-col">
-          <span className="text-sm text-destructive">
-            {formatCurrency(totalDeductions)}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            AFP: {formatCurrency(deductionAfp)}
-          </span>
-        </div>
+        <span className="text-sm font-semibold text-destructive">
+          {formatCurrency(totalDeductions)}
+        </span>
       );
     },
   },
   {
     accessorKey: 'payroll.netAmount',
-    header: 'Total Líquido',
+    header: 'Líquido Pagable',
     cell: ({ row }) => {
       const netAmount = row.original.payroll.netAmount;
       return (
-        <span className="font-semibold text-green-600">
+        <span className="text-base font-bold text-green-600">
           {formatCurrency(netAmount)}
         </span>
       );
@@ -110,24 +239,57 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
     id: 'employee',
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
-      const { firstName, lastName, ci } = row.original.employee;
+      const { firstName, lastName, ci, branchName, status } =
+        row.original.employee;
+      const position = row.original.employee.positionName || 'Sin cargo';
+      const isActive = status === 'ACTIVE';
       return (
-        <section className="pl-4">
-          <span className="font-medium">
-            {firstName} {lastName}
+        <section className="pl-4 min-w-[200px]">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">
+              {firstName} {lastName}
+            </span>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                isActive
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-orange-100 text-orange-500'
+              }`}
+            >
+              {isActive ? 'Activo' : 'Inactivo'}
+            </span>
+          </div>
+          <span className="text-sm text-muted-foreground block">CI: {ci}</span>
+          <span>
+            <span className="text-sm font-medium">{branchName}</span>
+            <span className="text-xs text-muted-foreground">
+              {` | `}
+              {position}
+            </span>
           </span>
-          <span className="block text-sm text-muted-foreground">CI: {ci}</span>
         </section>
       );
     },
   },
   {
+    accessorKey: 'employee.hireDate',
+    header: 'Fecha de Ingreso',
+    cell: ({ row }) => {
+      const hireDate = row.original.employee.hireDate;
+      return (
+        <span className="text-sm text-muted-foreground">
+          {formatDate(hireDate)}
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: 'payment.baseSalary',
-    header: 'Salario Base',
+    header: 'Haber Básico',
     cell: ({ row }) => {
       const baseSalary = row.original.payment.baseSalary;
       return (
-        <span className="text-muted-foreground">
+        <span className="text-sm font-medium">
           {formatCurrency(baseSalary)}
         </span>
       );
@@ -138,55 +300,138 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
     header: 'Días Trabajados',
     cell: ({ row }) => {
       const workedDays = row.original.payment.workedDays;
-      return <span className="text-muted-foreground">{workedDays} días</span>;
+      const workingDaysPerMonth =
+        row.original.payment.workingDaysPerMonth || 30;
+      return (
+        <div className="text-center">
+          <span className="text-sm font-medium">{workedDays}</span>
+          <span className="text-xs text-muted-foreground block">
+            de {workingDaysPerMonth}
+          </span>
+        </div>
+      );
     },
   },
   {
-    accessorKey: 'payment.seniorityYears',
-    header: 'Antigüedad',
+    accessorKey: 'payment.basicEarnings',
+    header: 'Sueldo Básico',
+    cell: ({ row }) => {
+      const basicEarnings = row.original.payment.basicEarnings;
+      return (
+        <span className="text-sm font-medium">
+          {formatCurrency(basicEarnings)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'payment.seniorityBonus',
+    header: 'Bono Antigüedad',
     cell: ({ row }) => {
       const seniorityYears = row.original.payment.seniorityYears;
       const seniorityBonus = row.original.payment.seniorityBonus;
       return (
         <div className="flex flex-col">
-          <span className="text-sm text-muted-foreground">
-            {seniorityYears} {seniorityYears === 1 ? 'año' : 'años'}
+          <span className="text-sm font-medium">
+            {formatCurrency(seniorityBonus)}
           </span>
           <span className="text-xs text-muted-foreground">
-            Bono: {formatCurrency(seniorityBonus)}
+            {seniorityYears} {seniorityYears === 1 ? 'año' : 'años'}
           </span>
         </div>
       );
     },
   },
   {
-    accessorKey: 'payment.totalDeduction',
-    header: 'Deducciones',
+    accessorKey: 'payment.otherBonuses',
+    header: 'Otros Bonos',
     cell: ({ row }) => {
-      const totalDeduction = row.original.payment.totalDeduction;
-      const deductionAfp = row.original.payment.deductionAfp;
+      const otherBonuses = row.original.payment.otherBonuses;
       return (
-        <div className="flex flex-col">
-          <span className="text-sm text-destructive">
-            {formatCurrency(totalDeduction)}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            AFP: {formatCurrency(deductionAfp)}
-          </span>
+        <span className="text-sm font-medium text-green-600">
+          {formatCurrency(otherBonuses)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'payment.totalBonuses',
+    header: 'Total Bonos',
+    cell: ({ row }) => {
+      const otherBonuses = row.original.payment.totalBonuses;
+      return (
+        <span className="text-sm font-medium text-green-600">
+          {formatCurrency(otherBonuses)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'payment.totalEarnings',
+    header: 'Total Ganado',
+    cell: ({ row }) => {
+      const totalEarnings = row.original.payment.totalEarnings;
+      return (
+        <span className="text-sm font-semibold text-green-700">
+          {formatCurrency(totalEarnings)}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'deductions-detail',
+    header: 'Descuentos',
+    cell: ({ row }) => {
+      const deductions = row.original.payment.deductions || [];
+      const deductionAfp = row.original.payment.deductionAfp;
+
+      return (
+        <div className="flex flex-col gap-0.5 min-w-[150px]">
+          {/* AFP */}
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Gestora:</span>
+            <span className="font-medium">{formatCurrency(deductionAfp)}</span>
+          </div>
+
+          {/* Otras deducciones */}
+          {deductions.map((deduction, index) => (
+            <div key={index} className="flex justify-between text-xs">
+              <span className="text-muted-foreground">
+                {deductionLabels[deduction.type] || deduction.type}:
+              </span>
+              <span className="font-medium">
+                {formatCurrency(deduction.totalDeduction)}
+              </span>
+            </div>
+          ))}
         </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'payment.totalDeductions',
+    header: 'Total Descuentos',
+    cell: ({ row }) => {
+      const totalDeductions = row.original.payment.totalDeductions;
+      const deductionAfp = row.original.payment.deductionAfp;
+      const totalWithAfp = totalDeductions + deductionAfp;
+      return (
+        <span className="text-sm font-semibold text-destructive">
+          {formatCurrency(totalWithAfp)}
+        </span>
       );
     },
   },
   {
     accessorKey: 'payment.netAmount',
-    header: 'Total Líquido',
+    header: 'Líquido Pagable',
     cell: ({ row }) => {
       const netAmount = row.original.payment.netAmount;
       return (
-        <span className="font-semibold text-green-600">
+        <span className="text-base font-bold text-green-600">
           {formatCurrency(netAmount)}
         </span>
       );
     },
-  }
+  },
 ];

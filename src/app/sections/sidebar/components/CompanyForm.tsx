@@ -21,8 +21,8 @@ import { LoaderCircle } from 'lucide-react';
 import type { CompanyCreateRequest } from '@/rest-client/interface/request/CompanyCreateRequest';
 
 const formSchema = z.object({
-  name: z.string().min(1, FormsValidationTexts.required),
-  type: z.string().min(1, FormsValidationTexts.required),
+  name: z.string().min(1, FormsValidationTexts.required).max(80, 'El nombre no puede exceder los 100 caracteres'),
+  type: z.string().min(1, FormsValidationTexts.required).max(10, 'El tipo no puede exceder los 100 caracteres'),
 });
 
 type FormValues = z.infer<typeof formSchema>;

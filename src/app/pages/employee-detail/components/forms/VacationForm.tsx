@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO, subMonths } from 'date-fns';
+import { MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 import { es } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,7 +37,10 @@ const formSchema = z
     endDate: z.date({
       error: 'La fecha de fin es obligatoria',
     }),
-    notes: z.string().optional(),
+    notes: z
+      .string()
+      .max(500, 'La nota no puede exceder los 500 caracteres')
+      .optional(),
   })
   .refine(
     (data) => {
@@ -56,6 +60,7 @@ interface VacationFormProps {
   vacation?: VacationResponse;
   onSave?: (vacation: VacationResponse) => void;
   onCancel?: () => void;
+  isDisassociated?: boolean;
 }
 
 export function VacationForm({
@@ -63,6 +68,7 @@ export function VacationForm({
   vacation,
   onSave,
   onCancel,
+  isDisassociated,
 }: VacationFormProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!vacation;
@@ -70,8 +76,8 @@ export function VacationForm({
   const form = useForm<VacationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      startDate: vacation?.startDate ? new Date(vacation.startDate) : undefined,
-      endDate: vacation?.endDate ? new Date(vacation.endDate) : undefined,
+      startDate: vacation?.startDate ? parseISO(vacation.startDate) : undefined,
+      endDate: vacation?.endDate ? parseISO(vacation.endDate) : undefined,
       notes: vacation?.notes || '',
     },
   });
@@ -79,9 +85,15 @@ export function VacationForm({
   useEffect(() => {
     if (vacation) {
       form.reset({
-        startDate: new Date(vacation.startDate),
-        endDate: new Date(vacation.endDate),
+        startDate: parseISO(vacation.startDate),
+        endDate: parseISO(vacation.endDate),
         notes: vacation.notes || '',
+      });
+    } else {
+      form.reset({
+        startDate: undefined,
+        endDate: undefined,
+        notes: '',
       });
     }
   }, [vacation, form]);
@@ -97,6 +109,8 @@ export function VacationForm({
       setLoading(true);
       let savedVacation: VacationResponse;
 
+      const days = calculateDays(values.startDate, values.endDate);
+
       if (isEditing) {
         savedVacation = await vacationService.patchVacation(vacation.id, {
           startDate: values.startDate,
@@ -105,10 +119,11 @@ export function VacationForm({
         });
 
         toast.success('Vacación actualizada', {
-          description: `Se actualizó correctamente (${calculateDays(
-            values.startDate,
-            values.endDate
-          )} días)`,
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se actualizó correctamente (${days} días)`}
+            </p>
+          ),
         });
       } else {
         savedVacation = await vacationService.createVacation({
@@ -119,10 +134,11 @@ export function VacationForm({
         });
 
         toast.success('Vacación registrada', {
-          description: `Se registró correctamente (${calculateDays(
-            values.startDate,
-            values.endDate
-          )} días)`,
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se registró correctamente (${days} días)`}
+            </p>
+          ),
         });
       }
 
@@ -135,8 +151,12 @@ export function VacationForm({
       }
     } catch (error) {
       console.error('Error al guardar vacación:', error);
-      toast.error('Error al guardar', {
-        description: 'Ocurrió un error al intentar guardar la vacación.',
+      toast.error(isEditing ? 'Error al actualizar' : 'Error al guardar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            Ocurrió un error al intentar guardar la vacación.
+          </p>
+        ),
       });
     } finally {
       setLoading(false);
@@ -155,7 +175,7 @@ export function VacationForm({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha de inicio</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -180,39 +200,33 @@ export function VacationForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    locale={es}
+                    defaultMonth={(() => {
+                      const now = new Date();
+                      if (isDisassociated) return now;
+                      if (now.getDate() <= MONTH_CUTOFF_DAY)
+                        return subMonths(now, 1);
+                      return now;
+                    })()}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     disabled={(date) => {
-                      const today = new Date();
-
                       if (date < new Date('1900-01-01')) return true;
 
+                      const today = new Date();
                       if (date > today) return true;
-
-                      const currentMonth = today.getMonth();
-                      const currentYear = today.getFullYear();
-
-                      const dateMonth = date.getMonth();
-                      const dateYear = date.getFullYear();
-
-                      const isSameYear = dateYear === currentYear;
-                      const isEarlyInMonth = today.getDate() <= 5;
-
-                      const isPreviousMonth =
-                        (isSameYear && dateMonth === currentMonth - 1) ||
-                        (currentMonth === 0 &&
-                          dateYear === currentYear - 1 &&
-                          dateMonth === 11);
-
-                      const isOlderThanPreviousMonth =
-                        dateYear < currentYear ||
-                        (isSameYear && dateMonth < currentMonth - 1);
-
-                      if (isOlderThanPreviousMonth) return true;
-                      if (isPreviousMonth && !isEarlyInMonth) return true;
 
                       return false;
                     }}
                     initialFocus
-                    locale={es}
                   />
                 </PopoverContent>
               </Popover>
@@ -227,7 +241,7 @@ export function VacationForm({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha de fin</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -252,14 +266,33 @@ export function VacationForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    locale={es}
+                    defaultMonth={(() => {
+                      const now = new Date();
+                      if (isDisassociated) return now;
+                      if (now.getDate() <= MONTH_CUTOFF_DAY)
+                        return subMonths(now, 1);
+                      return now;
+                    })()}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     disabled={(date) => {
                       if (date < new Date('1900-01-01')) return true;
+
                       const start = form.watch('startDate');
                       if (start && date < start) return true;
+
                       return false;
                     }}
                     initialFocus
-                    locale={es}
                   />
                 </PopoverContent>
               </Popover>

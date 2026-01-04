@@ -10,11 +10,14 @@ export class MemorandumService {
     return httpClient.post<MemorandumResponse>(this.BASE_URL, memorandumCreateRequest);
   }
 
-  async getMemorandumsByEmployee(employeeId: string, startDate?: string, endDate?: string): Promise<MemorandumResponse[]> {
+  async getMemorandumsByEmployee(employeeId: string, startDate?: string, endDate?: string, useActualDate?: boolean): Promise<MemorandumResponse[]> {
     const params = new URLSearchParams({
       ...(startDate && { startDate }),
       ...(endDate && { endDate })
     });
+    if (useActualDate !== undefined && useActualDate !== null) {
+      params.append('useActualDate', useActualDate.toString());
+    }
     const url = `${this.BASE_URL}/employees/${employeeId}${params.toString() ? `?${params}` : ''}`;
     return httpClient.get<MemorandumResponse[]>(url);
   }
@@ -33,5 +36,9 @@ export class MemorandumService {
       `${this.BASE_URL}/${memorandumId}`,
       memorandumUpdateRequest
     );
+  }
+
+  async deleteMemorandum(memorandumId: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${memorandumId}`);
   }
 }

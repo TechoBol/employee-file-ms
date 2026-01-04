@@ -1,15 +1,15 @@
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw } from 'lucide-react';
-import { useDataTable } from './hooks/userDataTable';
+import { useDataTable } from './hooks/useDataTable';
 import { DataTable } from '@/app/shared/components/DataTable';
 import { columns } from './columns';
-import { SearchInput } from '@/app/shared/components/SearchInput';
 import { EmployeePageTexts } from '@/constants/localize';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { useState } from 'react';
 import EmployeeForm from './EmployeeForm';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 import { EmployeeProvider } from './hooks/useEmployeeContext';
+import { EmployeeFilters } from './EmployeeFilters';
 
 export default function EmployeesPage() {
   const {
@@ -18,10 +18,10 @@ export default function EmployeesPage() {
     error,
     pagination,
     pageCount,
-    searchValue,
+    filters,
     setData,
     setPagination,
-    setSearchValue,
+    setFilters,
     refetch,
   } = useDataTable<EmployeeResponse>({
     endpoint: '/api/employees',
@@ -70,6 +70,7 @@ export default function EmployeesPage() {
         >
           <EmployeeForm onSave={onSave} />
         </ReusableDialog>
+
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
@@ -86,12 +87,12 @@ export default function EmployeesPage() {
         </div>
 
         <div className="flex flex-col space-y-4">
-          <SearchInput
-            value={searchValue}
-            onChange={setSearchValue}
-            placeholder={EmployeePageTexts.searchPlaceholder}
+          <EmployeeFilters
+            filters={filters}
+            onChange={setFilters}
             disabled={loading}
-            className="w-full sm:max-w-sm"
+            debounceMs={500}
+            showDebounceIndicator={true}
           />
 
           <DataTable

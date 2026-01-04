@@ -16,7 +16,6 @@ import {
   sidebarGroupItems,
   sidebarItems,
 } from '@/app/shared/data/sidebar-items';
-import { defaultUser } from '@/app/shared/data/users';
 import { NavSecondary } from './components/NavSecondary';
 import { useSidebar } from './hooks/useSidebar';
 
@@ -36,13 +35,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="flex flex-col jus">
+      <SidebarContent className="flex flex-col">
         <NavMain items={sidebarGroupItems} />
         <NavSecondary items={sidebarItems} />
       </SidebarContent>
       <SidebarFooter>
-        {/* // TODO: Add user logged in state */}
-        <NavUser user={defaultUser} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

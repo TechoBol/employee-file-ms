@@ -32,14 +32,18 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, parseISO, subMonths } from 'date-fns';
+import { MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 import { es } from 'date-fns/locale';
 
 const memorandumService = new MemorandumService();
 
 const formSchema = z.object({
   type: z.string().min(1, 'El tipo es obligatorio'),
-  description: z.string().min(1, 'La descripción es obligatoria'),
+  description: z
+    .string()
+    .min(1, 'La descripción es obligatoria')
+    .max(1000, 'La descripción no puede exceder los 1000 caracteres'),
   memorandumDate: z.date({
     error: 'La fecha es obligatoria',
   }),
@@ -53,6 +57,7 @@ interface MemorandumFormProps {
   memorandum?: MemorandumResponse;
   onSave?: (memorandum: MemorandumResponse) => void;
   onCancel?: () => void;
+  isDisassociated?: boolean;
 }
 
 export function MemorandumForm({
@@ -60,6 +65,7 @@ export function MemorandumForm({
   memorandum,
   onSave,
   onCancel,
+  isDisassociated,
 }: MemorandumFormProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!memorandum;
@@ -70,7 +76,7 @@ export function MemorandumForm({
       type: memorandum?.type || '',
       description: memorandum?.description || '',
       memorandumDate: memorandum?.memorandumDate
-        ? new Date(memorandum.memorandumDate)
+        ? parseISO(memorandum.memorandumDate)
         : undefined,
       isPositive: memorandum?.isPositive ?? true,
     },
@@ -81,7 +87,7 @@ export function MemorandumForm({
       form.reset({
         type: memorandum.type,
         description: memorandum.description,
-        memorandumDate: new Date(memorandum.memorandumDate),
+        memorandumDate: parseISO(memorandum.memorandumDate),
         isPositive: memorandum.isPositive,
       });
     }
@@ -105,7 +111,11 @@ export function MemorandumForm({
         );
 
         toast.success('Memorándum actualizado', {
-          description: 'Se actualizó correctamente',
+          description: (
+            <p className="text-slate-700 select-none">
+              Se actualizó correctamente
+            </p>
+          ),
         });
       } else {
         savedMemorandum = await memorandumService.createMemorandum({
@@ -117,9 +127,13 @@ export function MemorandumForm({
         });
 
         toast.success('Memorándum registrado', {
-          description: `Se registró correctamente como ${
-            values.isPositive ? 'positivo' : 'negativo'
-          }`,
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se registró correctamente como ${
+                values.isPositive ? 'positivo' : 'negativo'
+              }`}
+            </p>
+          ),
         });
       }
 
@@ -133,7 +147,11 @@ export function MemorandumForm({
     } catch (error) {
       console.error('Error al guardar memorándum:', error);
       toast.error('Error al guardar', {
-        description: 'Ocurrió un error al intentar guardar el memorándum.',
+        description: (
+          <p className="text-slate-700 select-none">
+            Ocurrió un error al intentar guardar el memorándum.
+          </p>
+        ),
       });
     } finally {
       setLoading(false);
@@ -192,7 +210,7 @@ export function MemorandumForm({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha del memorándum</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -217,35 +235,29 @@ export function MemorandumForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    locale={es}
+                    defaultMonth={(() => {
+                      const now = new Date();
+                      if (isDisassociated) return now;
+                      if (now.getDate() <= MONTH_CUTOFF_DAY)
+                        return subMonths(now, 1);
+                      return now;
+                    })()}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     disabled={(date) => {
                       const today = new Date();
-
                       if (date > today) return true;
 
                       if (date < new Date('1900-01-01')) return true;
-
-                      const currentMonth = today.getMonth();
-                      const currentYear = today.getFullYear();
-
-                      const dateMonth = date.getMonth();
-                      const dateYear = date.getFullYear();
-
-                      const isSameYear = dateYear === currentYear;
-
-                      const isEarlyInMonth = today.getDate() <= 5;
-
-                      const isPreviousMonth =
-                        (isSameYear && dateMonth === currentMonth - 1) ||
-                        (currentMonth === 0 &&
-                          dateYear === currentYear - 1 &&
-                          dateMonth === 11);
-
-                      const isOlderThanPreviousMonth =
-                        dateYear < currentYear ||
-                        (isSameYear && dateMonth < currentMonth - 1);
-
-                      if (isOlderThanPreviousMonth) return true;
-                      if (isPreviousMonth && !isEarlyInMonth) return true;
 
                       return false;
                     }}

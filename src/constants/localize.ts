@@ -69,6 +69,7 @@ export const DataTableTexts = {
 
 export const DataTableColumnsTexts = {
   employee: 'Empleado',
+  status: 'Estado',
   department: 'Departamento',
   position: 'Posición',
   contact: 'Contacto',
@@ -114,10 +115,11 @@ export const EmployeeDetailsTexts = {
   download: 'Descargar',
   personalInfo: 'Información Personal',
   salary: 'Salario',
+  others: 'Otros',
   memos: 'Memorandums',
   permissions: 'Permisos y Faltas',
   vacations: 'Vacaciones',
-  advances: 'Adelantos',
+  advances: 'Anticipos',
   dismissal: 'Desvinculación',
 };
 

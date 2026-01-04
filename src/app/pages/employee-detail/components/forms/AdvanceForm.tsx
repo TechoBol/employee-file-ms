@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO, subMonths } from 'date-fns';
+import { MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/popover';
 import { AdvanceService } from '@/rest-client/services/AdvanceService';
 import type { AdvanceResponse } from '@/rest-client/interface/response/AdvanceResponse';
+import { es } from 'date-fns/locale';
 
 const advanceService = new AdvanceService();
 
@@ -38,7 +40,11 @@ type AdvanceFormValues = z.infer<typeof formSchema>;
 
 interface AdvanceFormProps {
   employeeId: string;
-  onSave?: (newAdvance: AdvanceResponse) => void;
+  advance?: AdvanceResponse;
+  useReplaceMode?: boolean;
+  onSave?: (advance: AdvanceResponse) => void;
+  onCancel?: () => void;
+  isDisassociated?: boolean;
 }
 
 const formatCurrency = (value: number) =>
@@ -48,8 +54,16 @@ const formatCurrency = (value: number) =>
     minimumFractionDigits: 2,
   }).format(value);
 
-export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
+export function AdvanceForm({
+  employeeId,
+  advance,
+  useReplaceMode = false,
+  onSave,
+  onCancel,
+  isDisassociated,
+}: AdvanceFormProps) {
   const [loading, setLoading] = useState(false);
+  const isEditing = !!advance;
 
   const form = useForm<AdvanceFormValues>({
     resolver: zodResolver(formSchema),
@@ -59,37 +73,108 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
     },
   });
 
-  const onSubmit = async (values: AdvanceFormValues) => {
-    try {
-      setLoading(true);
-
-      const amountDecimal = values.amount;
-
-      const newAdvance = await advanceService.createAdvance({
-        employeeId,
-        amount: amountDecimal,
-        advanceDate: format(values.advanceDate, 'yyyy-MM-dd'),
+  useEffect(() => {
+    if (advance) {
+      form.reset({
+        amount: advance.amount,
+        advanceDate: parseISO(advance.advanceDate),
       });
-
-      toast.success('Adelanto registrado', {
-        description: `Se registró correctamente. Monto: ${formatCurrency(
-          newAdvance.amount
-        )} (${values.amount})`,
-      });
-
-      if (onSave) {
-        onSave(newAdvance);
-      }
-
+    } else {
       form.reset({
         amount: undefined,
         advanceDate: new Date(),
       });
+    }
+  }, [advance, form]);
+
+  const onSubmit = async (values: AdvanceFormValues) => {
+    try {
+      setLoading(true);
+
+      let savedAdvance: AdvanceResponse;
+
+      if (isEditing) {
+        const updateData = {
+          amount: values.amount,
+          advanceDate: format(values.advanceDate, 'yyyy-MM-dd'),
+        };
+
+        // Usar replacePatchAdvance o patchAdvance según el modo
+        if (useReplaceMode) {
+          savedAdvance = await advanceService.replacePatchAdvance(
+            advance.id,
+            updateData
+          );
+
+          toast.success('Adelanto reemplazado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                {`Se reemplazó correctamente. Monto: ${formatCurrency(
+                  savedAdvance.amount
+                )}`}
+              </p>
+            ),
+          });
+        } else {
+          savedAdvance = await advanceService.patchAdvance(
+            advance.id,
+            updateData
+          );
+
+          toast.success('Adelanto actualizado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                {`Se actualizó correctamente. Monto: ${formatCurrency(
+                  savedAdvance.amount
+                )}`}
+              </p>
+            ),
+          });
+        }
+      } else {
+        savedAdvance = await advanceService.createAdvance({
+          employeeId,
+          amount: values.amount,
+          advanceDate: format(values.advanceDate, 'yyyy-MM-dd'),
+        });
+
+        toast.success('Adelanto registrado', {
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se registró correctamente. Monto: ${formatCurrency(
+                savedAdvance.amount
+              )}`}
+            </p>
+          ),
+        });
+      }
+
+      if (onSave) {
+        onSave(savedAdvance);
+      }
+
+      if (!isEditing) {
+        form.reset({
+          amount: undefined,
+          advanceDate: new Date(),
+        });
+      }
     } catch (error) {
-      console.error('Error al registrar adelanto:', error);
-      toast.error('Error al registrar', {
-        description: 'Ocurrió un error al intentar guardar el adelanto.',
-      });
+      console.error('Error al guardar adelanto:', error);
+      toast.error(
+        isEditing
+          ? useReplaceMode
+            ? 'Error al reemplazar'
+            : 'Error al actualizar'
+          : 'Error al registrar',
+        {
+          description: (
+            <p className="text-slate-700 select-none">
+              Ocurrió un error al intentar guardar el adelanto.
+            </p>
+          ),
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -106,12 +191,13 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Monto del adelanto</FormLabel>
+              <FormLabel>Monto del adelanto (Bs)</FormLabel>
               <FormControl>
                 <Input
                   type="number"
-                  placeholder="Ej: 1000 (Bs)"
-                  step="1"
+                  placeholder="Ej: 1000"
+                  step="0.01"
+                  min="0"
                   {...field}
                   onChange={(e) => {
                     const value = parseFloat(e.target.value);
@@ -131,7 +217,7 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha del adelanto</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -156,10 +242,27 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    locale={es}
+                    defaultMonth={(() => {
+                      const now = new Date();
+                      if (isDisassociated) return now;
+                      if (now.getDate() <= MONTH_CUTOFF_DAY)
+                        return subMonths(now, 1);
+                      return now;
+                    })()}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     disabled={(date) =>
                       date > new Date() || date < new Date('1900-01-01')
                     }
-                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
@@ -168,9 +271,31 @@ export function AdvanceForm({ employeeId, onSave }: AdvanceFormProps) {
           )}
         />
 
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? 'Registrando...' : 'Registrar Adelanto'}
-        </Button>
+        <div className="flex gap-2">
+          <Button type="submit" disabled={loading} className="flex-1">
+            {loading
+              ? isEditing
+                ? useReplaceMode
+                  ? 'Reemplazando...'
+                  : 'Actualizando...'
+                : 'Registrando...'
+              : isEditing
+              ? useReplaceMode
+                ? 'Reemplazar'
+                : 'Actualizar'
+              : 'Registrar'}
+          </Button>
+          {isEditing && onCancel && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+          )}
+        </div>
       </form>
     </Form>
   );

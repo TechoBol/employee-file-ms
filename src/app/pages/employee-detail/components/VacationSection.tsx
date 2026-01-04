@@ -11,48 +11,31 @@ import {
   ChevronUp,
   Edit2,
   Calendar,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { VacationService } from '@/rest-client/services/VacationService';
 import type { VacationResponse } from '@/rest-client/interface/response/VacationResponse';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { VacationForm } from './forms/VacationForm';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { formatDate } from '@/lib/utils';
+import { getMonthRange } from '@/lib/date-utils';
 
 type VacationSectionProps = {
   employeeId: string;
   employeeName?: string;
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
-
-const formatMonthYear = (date: Date) => {
-  return date.toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-  });
-};
-
-const getMonthRange = (monthsAgo: number) => {
-  const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const endDate = new Date(
-    now.getFullYear(),
-    now.getMonth() - monthsAgo + 1,
-    0,
-    23,
-    59,
-    59
-  );
-  return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
-    label: formatMonthYear(startDate),
-  };
+  isDisassociated?: boolean;
 };
 
 const calculateDays = (start: string, end: string): number => {
@@ -63,12 +46,25 @@ const calculateDays = (start: string, end: string): number => {
   return diffDays + 1;
 };
 
+// Función para determinar en qué mes está una vacación
+const getMonthsAgoFromDate = (dateString: string): number => {
+  const vacationDate = new Date(dateString);
+  const now = new Date();
+
+  const yearDiff = now.getFullYear() - vacationDate.getFullYear();
+  const monthDiff = now.getMonth() - vacationDate.getMonth();
+
+  return yearDiff * 12 + monthDiff;
+};
+
 const vacationService = new VacationService();
 
 export function VacationSection({
   employeeId,
   employeeName,
+  isDisassociated,
 }: VacationSectionProps) {
+  const applyCutoff = !isDisassociated;
   const [currentVacations, setCurrentVacations] = useState<VacationResponse[]>(
     []
   );
@@ -82,6 +78,10 @@ export function VacationSection({
     Map<number, VacationResponse[] | null>
   >(new Map());
   const [loadingMonths, setLoadingMonths] = useState<Set<number>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vacationToDelete, setVacationToDelete] =
+    useState<VacationResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchCurrentVacations();
@@ -92,7 +92,10 @@ export function VacationSection({
       setLoading(true);
       setError(null);
       const vacations = await vacationService.getVacationsByEmployee(
-        employeeId
+        employeeId,
+        undefined,
+        undefined,
+        !applyCutoff
       );
       setCurrentVacations(vacations);
     } catch (err) {
@@ -105,7 +108,32 @@ export function VacationSection({
     }
   };
 
-  const handleVacationSaved = (savedVacation: VacationResponse) => {
+  const reloadMonth = async (monthsAgo: number) => {
+    setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
+
+    try {
+      const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
+      const vacations = await vacationService.getVacationsByEmployee(
+        employeeId,
+        startDate,
+        endDate
+      );
+      setMonthlyVacations((prev) => new Map(prev).set(monthsAgo, vacations));
+    } catch (err) {
+      console.error(`Error reloading month ${monthsAgo}:`, err);
+      toast.error('Error al recargar', {
+        description: 'No se pudo actualizar los datos del mes',
+      });
+    } finally {
+      setLoadingMonths((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(monthsAgo);
+        return newSet;
+      });
+    }
+  };
+
+  const handleVacationSaved = async (savedVacation: VacationResponse) => {
     if (editingVacation) {
       // Actualizar vacación existente
       setCurrentVacations((prev) =>
@@ -119,12 +147,66 @@ export function VacationSection({
     setDialogOpen(false);
 
     // Refrescar la lista completa
-    fetchCurrentVacations();
+    await fetchCurrentVacations();
+
+    // Determinar el mes de la vacación y recargar si no es mes actual
+    const monthsAgo = getMonthsAgoFromDate(savedVacation.startDate);
+    if (monthsAgo > 0 && monthlyVacations.has(monthsAgo)) {
+      await reloadMonth(monthsAgo);
+    }
   };
 
   const handleEdit = (vacation: VacationResponse) => {
     setEditingVacation(vacation);
     setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (vacation: VacationResponse) => {
+    setVacationToDelete(vacation);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!vacationToDelete) return;
+
+    try {
+      setDeleting(true);
+      await vacationService.deleteVacation(vacationToDelete.id);
+
+      setCurrentVacations((prev) =>
+        prev.filter((v) => v.id !== vacationToDelete.id)
+      );
+
+      toast.success('Vacación eliminada', {
+        description: (
+          <p className="text-slate-700 select-none">
+            La vacación fue eliminada correctamente
+          </p>
+        ),
+      });
+
+      // Recargar mes actual
+      await fetchCurrentVacations();
+
+      // Determinar el mes de la vacación eliminada y recargar si no es mes actual
+      const monthsAgo = getMonthsAgoFromDate(vacationToDelete.startDate);
+      if (monthsAgo > 0 && monthlyVacations.has(monthsAgo)) {
+        await reloadMonth(monthsAgo);
+      }
+    } catch (error) {
+      console.error('Error al eliminar vacación:', error);
+      toast.error('Error al eliminar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            No se pudo eliminar la vacación
+          </p>
+        ),
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setVacationToDelete(null);
+    }
   };
 
   const handleDialogChange = (open: boolean) => {
@@ -148,7 +230,7 @@ export function VacationSection({
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { startDate, endDate } = getMonthRange(monthsAgo);
+          const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
           const vacations = await vacationService.getVacationsByEmployee(
             employeeId,
             startDate,
@@ -182,7 +264,7 @@ export function VacationSection({
 
   const renderVacationCard = (
     vacation: VacationResponse,
-    showEdit: boolean = true
+    isCurrentMonth: boolean = true
   ) => (
     <div
       key={vacation.id}
@@ -206,16 +288,27 @@ export function VacationSection({
         </div>
       </div>
 
-      {showEdit && (
+      <div className="flex gap-2 flex-shrink-0 ml-2">
+        {isCurrentMonth && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleEdit(vacation)}
+            title="Editar"
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => handleEdit(vacation)}
-          className="flex-shrink-0 ml-2"
+          onClick={() => handleDeleteClick(vacation)}
+          title="Eliminar"
+          className="text-destructive hover:text-destructive"
         >
-          <Edit2 className="h-4 w-4" />
+          <Trash2 className="h-4 w-4" />
         </Button>
-      )}
+      </div>
     </div>
   );
 
@@ -247,8 +340,31 @@ export function VacationSection({
           vacation={editingVacation || undefined}
           onSave={handleVacationSaved}
           onCancel={() => handleDialogChange(false)}
+          isDisassociated={isDisassociated}
         />
       </ReusableDialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. La vacación será eliminada
+              permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive/85 text-destructive-foreground hover:bg-destructive text-slate-100"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex justify-between">
         <div>
@@ -297,7 +413,7 @@ export function VacationSection({
           </span>
           <Separator />
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {currentVacations.map((vacation) =>
               renderVacationCard(vacation, true)
             )}
@@ -322,25 +438,41 @@ export function VacationSection({
         <span className="text-lg font-semibold">Meses anteriores</span>
 
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
-          const { label } = getMonthRange(monthsAgo);
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const vacations = monthlyVacations.get(monthsAgo);
 
           return (
             <div key={monthsAgo} className="border rounded-xl">
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-4 h-auto"
-                onClick={() => toggleMonth(monthsAgo)}
-              >
-                <span className="font-medium">{label}</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
+              <div className="flex items-center justify-between p-4">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-between h-auto p-0"
+                  onClick={() => toggleMonth(monthsAgo)}
+                >
+                  <span className="font-medium">{label}</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                {isExpanded && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => reloadMonth(monthsAgo)}
+                    disabled={isLoading}
+                    className="ml-2"
+                    title="Recargar mes"
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                    />
+                  </Button>
                 )}
-              </Button>
+              </div>
 
               {isExpanded && (
                 <div className="p-4 pt-0">

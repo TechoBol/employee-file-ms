@@ -10,11 +10,14 @@ export class AdvanceService {
     return httpClient.post<AdvanceResponse>(this.BASE_URL, advanceCreateRequest);
   }
 
-  async getAdvancesByEmployee(employeeId: string, startDate?: string, endDate?: string): Promise<AdvanceResponse[]> {
+  async getAdvancesByEmployee(employeeId: string, startDate?: string, endDate?: string, useActualDate?: boolean): Promise<AdvanceResponse[]> {
     const params = new URLSearchParams({
       ...(startDate && { startDate }),
       ...(endDate && { endDate })
     });
+    if (useActualDate !== undefined && useActualDate !== null) {
+      params.append('useActualDate', useActualDate.toString());
+    }
     const url = `${this.BASE_URL}/employees/${employeeId}${params.toString() ? `?${params}` : ''}`;
     return httpClient.get<AdvanceResponse[]>(url);
   }
@@ -33,5 +36,16 @@ export class AdvanceService {
       `${this.BASE_URL}/${advanceId}`,
       advanceUpdateRequest
     );
+  }
+
+  async replacePatchAdvance(advanceId: string, advanceUpdateRequest: Partial<AdvanceUpdateRequest>): Promise<AdvanceResponse> {
+    return httpClient.patch<AdvanceResponse>(
+      `${this.BASE_URL}/${advanceId}/replace`,
+      advanceUpdateRequest
+    );
+  }
+
+  async deleteAdvance(advanceId: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${advanceId}`);
   }
 }

@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useSidebarService } from './useSidebarService';
-import type { Company } from '@/rest-client/interface/Company';
+import type { CompanyResponse } from '@/rest-client/interface/response/CompanyResponse';
+import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 
 export const useSidebar = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<CompanyResponse[]>([]);
   const { getCompanies } = useSidebarService();
+  const { companyId } = useConfigStore();
 
   useEffect(() => {
     getCompanies
-      .then((data: Company[]) => {
+      .then((data: CompanyResponse[]) => {
         console.log('Fetched companies:', data);
         setCompanies(data);
       })
@@ -16,7 +18,7 @@ export const useSidebar = () => {
         console.error('Error fetching companies:', error);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [companyId]);
 
   return {
     companies,

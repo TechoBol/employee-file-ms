@@ -11,15 +11,23 @@ export const useCompanySwitcher = (companies: CompanyResponse[]) => {
 
   useEffect(() => {
     if (companies.length > 0) {
+      console.log(
+        'Available companies:',
+        companies,
+        'Current companyId:',
+        companyId
+      );
       if (!companyId) {
-        setCompanyId(companies[0].id);
+        const firstCompanyId = companies[0].id;
+        localStorage.setItem('company_id', firstCompanyId);
+        setCompanyId(firstCompanyId);
         setActiveTeam(companies[0]);
         return;
       }
       const company =
         companies.find((team) => team.id === companyId) || companies[0];
-      setActiveTeam(company);
       localStorage.setItem('company_id', company.id);
+      setActiveTeam(company);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, companies]);

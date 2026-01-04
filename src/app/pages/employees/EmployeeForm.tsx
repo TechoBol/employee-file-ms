@@ -37,14 +37,30 @@ import type { DepartmentResponse } from '@/rest-client/interface/response/Depart
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 import { BranchService } from '@/rest-client/services/BranchService';
 import type { BranchResponse } from '@/rest-client/interface/response/BranchResponse';
+import { es } from 'date-fns/locale';
 
 const formSchema = z.object({
-  firstName: z.string().min(2, 'Nombre requerido'),
-  lastName: z.string().min(2, 'Apellido requerido'),
-  ci: z.string().min(5, 'CI requerido'),
+  firstName: z
+    .string()
+    .min(2, 'Nombre requerido')
+    .max(150, 'El nombre no puede exceder los 150 caracteres'),
+  lastName: z
+    .string()
+    .min(2, 'Apellido requerido')
+    .max(150, 'El apellido no puede exceder los 150 caracteres'),
+  ci: z
+    .string()
+    .min(5, 'CI requerido')
+    .max(15, 'El CI no puede exceder los 20 caracteres'),
   email: z.string().email('Correo inválido'),
-  phone: z.string().min(7, 'Teléfono requerido'),
-  address: z.string().min(5, 'Dirección requerida'),
+  phone: z
+    .string()
+    .min(7, 'Teléfono requerido')
+    .max(20, 'El teléfono no puede exceder los 20 caracteres'),
+  address: z
+    .string()
+    .min(5, 'Dirección requerida')
+    .max(180, 'La dirección no puede exceder los 180 caracteres'),
   birthDate: z.date({ error: 'Fecha de nacimiento requerida' }),
   hireDate: z.date({ error: 'Fecha de contratación requerida' }),
   type: z.enum(['FULL_TIME', 'CONSULTANT'] as const, {
@@ -104,7 +120,17 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
       form.setValue('positionId', '');
       return;
     }
-    positionService.getPositions().then(setPositions);
+    positionService
+      .getPositionsByDepartment(selectedDepartmentId)
+      .then((positions) => {
+        console.log(
+          'Fetched positions:',
+          positions,
+          'departmentId:',
+          selectedDepartmentId
+        );
+        setPositions(positions);
+      });
   }, [selectedDepartmentId, form]);
 
   useEffect(() => {
@@ -159,8 +185,10 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         // Actualizar empleado existente
         const result = await employeeService.patchEmployee(employee.id, values);
 
-        toast('Usuario actualizado', {
-          description: `${values.firstName} ${values.lastName} ha sido actualizado.`,
+        toast('Empleado actualizado', {
+          description: (
+            <p className="text-slate-700 select-none">{`${values.firstName} ${values.lastName} ha sido actualizado.`}</p>
+          ),
         });
 
         if (onSave) {
@@ -170,8 +198,10 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         // Crear nuevo empleado
         const result = await employeeService.createEmployee(values);
 
-        toast('Usuario creado', {
-          description: `${values.firstName} ${values.lastName} ha sido añadido.`,
+        toast('Empleado creado', {
+          description: (
+            <p className="text-slate-700 select-none">{`${values.firstName} ${values.lastName} ha sido añadido.`}</p>
+          ),
         });
 
         if (onSave) {
@@ -260,7 +290,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Fecha de Nacimiento</FormLabel>
-                  <Popover>
+                  <Popover modal>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -283,7 +313,22 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                         selected={
                           field.value ? new Date(field.value) : undefined
                         }
+                        defaultMonth={
+                          field.value ? new Date(field.value) : new Date()
+                        }
+                        locale={es}
                         captionLayout="dropdown"
+                        formatters={{
+                          formatCaption: (date) => {
+                            const formatted = format(date, 'LLLL yyyy', {
+                              locale: es,
+                            });
+                            return (
+                              formatted.charAt(0).toUpperCase() +
+                              formatted.slice(1)
+                            );
+                          },
+                        }}
                         onSelect={(date) => field.onChange(date)}
                         disabled={(date) =>
                           date > new Date() || date < new Date('1900-01-01')
@@ -492,7 +537,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Fecha de Contratación</FormLabel>
-                <Popover>
+                <Popover modal>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
@@ -513,7 +558,22 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                     <Calendar
                       mode="single"
                       selected={field.value ? new Date(field.value) : undefined}
+                      defaultMonth={
+                        field.value ? new Date(field.value) : new Date()
+                      }
+                      locale={es}
                       captionLayout="dropdown"
+                      formatters={{
+                        formatCaption: (date) => {
+                          const formatted = format(date, 'LLLL yyyy', {
+                            locale: es,
+                          });
+                          return (
+                            formatted.charAt(0).toUpperCase() +
+                            formatted.slice(1)
+                          );
+                        },
+                      }}
                       onSelect={(date) => field.onChange(date)}
                       disabled={(date) => date > new Date()}
                       autoFocus

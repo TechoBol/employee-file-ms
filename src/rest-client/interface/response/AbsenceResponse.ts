@@ -11,4 +11,5 @@ export interface AbsenceResponse {
   deductionAmount: number;
   createdAt: string;
   updatedAt: string;
+  processed: boolean;
 }

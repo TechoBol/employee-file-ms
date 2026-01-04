@@ -7,4 +7,5 @@ export interface SalaryEventResponse {
   frequency: string;
   startDate: string;
   endDate?: string;
+  processed: boolean;
 }

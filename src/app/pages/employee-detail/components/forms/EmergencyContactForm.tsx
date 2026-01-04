@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { EmergencyContactRequest } from '@/rest-client/interface/request/EmployeeUpdateRequest';
+import { EmployeeService } from '@/rest-client/services/EmployeeService';
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -30,9 +31,7 @@ interface EmergencyContactFormProps {
   onSave?: (contact: EmergencyContactRequest) => void;
 }
 
-const employeeService = new (
-  await import('@/rest-client/services/EmployeeService')
-).EmployeeService();
+const employeeService = new EmployeeService();
 
 export default function EmergencyContactForm({
   employeeId,

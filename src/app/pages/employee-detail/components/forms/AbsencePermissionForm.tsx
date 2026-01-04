@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
+import { format, parseISO, subMonths } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +34,7 @@ import {
 import { toast } from 'sonner';
 import type { AbsenceResponse } from '@/rest-client/interface/response/AbsenceResponse';
 import { AbsenceService } from '@/rest-client/services/AbsenceService';
+import { MONTH_CUTOFF_DAY } from '@/lib/date-utils';
 
 // Tipos específicos para el formulario
 export const AbsencePermissionType = {
@@ -51,34 +53,20 @@ type PermissionDuration =
 
 const absenceService = new AbsenceService();
 
-// const getDateRange = () => {
-//   const today = new Date();
-//   const currentDay = today.getDate();
-
-//   // Si estamos en los primeros 5 días, permitir mes anterior
-//   if (currentDay <= 5) {
-//     // Primer día del mes anterior
-//     const minDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-//     // Último día del mes actual
-//     const maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-//     return { minDate, maxDate };
-//   } else {
-//     // Primer día del mes actual
-//     const minDate = new Date(today.getFullYear(), today.getMonth(), 1);
-//     // Último día del mes actual
-//     const maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-//     return { minDate, maxDate };
-//   }
-// };
-
 const formSchema = z.object({
   type: z.nativeEnum(AbsencePermissionType),
   date: z.date({
     message: 'La fecha es obligatoria',
   }),
   duration: z.nativeEnum(PermissionDuration),
-  reason: z.string().optional(),
-  description: z.string().optional(),
+  reason: z
+    .string()
+    .max(150, 'La razón no puede exceder 150 caracteres')
+    .optional(),
+  description: z
+    .string()
+    .max(250, 'La descripción no puede exceder 250 caracteres')
+    .optional(),
 });
 
 type AbsencePermissionFormValues = z.infer<typeof formSchema>;
@@ -86,6 +74,8 @@ type AbsencePermissionFormValues = z.infer<typeof formSchema>;
 interface AbsencePermissionFormProps {
   employeeId: string;
   absence?: AbsenceResponse;
+  useReplaceMode?: boolean;
+  isDisassociated?: boolean;
   onSave?: (newEvent: AbsenceResponse) => void;
   onCancel?: () => void;
 }
@@ -97,24 +87,49 @@ const formatCurrency = (value: number) =>
     minimumFractionDigits: 2,
   }).format(value);
 
-// Función para extraer información del absence existente
+// Función mejorada para extraer información del absence existente
 const parseAbsenceData = (absence: AbsenceResponse) => {
   const description = absence.description || '';
+  const lowerDesc = description.toLowerCase();
 
-  // Determinar tipo
-  const type = description.toLowerCase().includes('falta')
-    ? AbsencePermissionType.ABSENCE
-    : AbsencePermissionType.PERMISSION;
+  // Determinar tipo - buscar las palabras clave
+  let type: AbsencePermissionType;
+  if (lowerDesc.includes('falta')) {
+    type = AbsencePermissionType.ABSENCE;
+  } else if (lowerDesc.includes('permiso')) {
+    type = AbsencePermissionType.PERMISSION;
+  } else {
+    // Default si no se encuentra ninguna palabra clave
+    type = AbsencePermissionType.PERMISSION;
+  }
 
-  // Determinar duración
-  const duration = description.toLowerCase().includes('medio')
-    ? PermissionDuration.HALF_DAY
-    : PermissionDuration.FULL_DAY;
+  // Determinar duración - buscar "medio" o "medio día"
+  let duration: PermissionDuration;
+  if (lowerDesc.includes('medio')) {
+    duration = PermissionDuration.HALF_DAY;
+  } else {
+    // Por defecto es día completo si no dice "medio"
+    duration = PermissionDuration.FULL_DAY;
+  }
 
-  // Extraer reason y description adicional si existen
+  // Extraer reason y description adicional
+  // El formato es: "Permiso/Falta [duración] - [reason] - [description]"
   const parts = description.split(' - ');
-  const reason = parts[1] || '';
-  const additionalDesc = parts[2] || '';
+
+  // parts[0] es "Permiso medio día" o "Falta 1 día", etc.
+  // parts[1] es el reason (si existe)
+  // parts[2] es la descripción adicional (si existe)
+
+  const reason = parts.length > 1 ? parts[1].trim() : '';
+  const additionalDesc = parts.length > 2 ? parts[2].trim() : '';
+
+  console.log('Parsing absence:', {
+    original: description,
+    type,
+    duration,
+    reason,
+    additionalDesc,
+  });
 
   return { type, duration, reason, additionalDesc };
 };
@@ -122,12 +137,26 @@ const parseAbsenceData = (absence: AbsenceResponse) => {
 export function AbsencePermissionForm({
   employeeId,
   absence,
+  useReplaceMode = false,
+  isDisassociated,
   onSave,
   onCancel,
 }: AbsencePermissionFormProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!absence;
-  // const { minDate, maxDate } = getDateRange();
+
+  // Calcular el mes por defecto basado en isDisassociated y MONTH_CUTOFF_DAY
+  const getDefaultMonth = () => {
+    const now = new Date();
+    if (isDisassociated) {
+      return now; // Mes actual si está desasociado
+    }
+    // Si no está desasociado y estamos en los primeros MONTH_CUTOFF_DAY días
+    if (now.getDate() <= MONTH_CUTOFF_DAY) {
+      return subMonths(now, 1); // Mes anterior
+    }
+    return now; // Mes actual
+  };
 
   const form = useForm<AbsencePermissionFormValues>({
     resolver: zodResolver(formSchema),
@@ -144,12 +173,29 @@ export function AbsencePermissionForm({
     if (absence) {
       const { type, duration, reason, additionalDesc } =
         parseAbsenceData(absence);
-      form.reset({
+
+      console.log('Setting form values:', {
         type,
-        date: new Date(absence.date),
+        date: absence.date,
         duration,
         reason,
         description: additionalDesc,
+      });
+
+      form.reset({
+        type,
+        date: parseISO(absence.date),
+        duration,
+        reason,
+        description: additionalDesc,
+      });
+    } else {
+      form.reset({
+        type: undefined,
+        date: undefined,
+        duration: undefined,
+        reason: '',
+        description: '',
       });
     }
   }, [absence, form]);
@@ -180,19 +226,46 @@ export function AbsencePermissionForm({
       let savedAbsence: AbsenceResponse;
 
       if (isEditing) {
-        savedAbsence = await absenceService.patchAbsence(absence.id, {
+        const updateData = {
           type: values.type,
           duration: values.duration,
           date: format(values.date, 'yyyy-MM-dd'),
           description: detailedDescription,
           reason: values.reason,
-        });
+        };
 
-        toast.success('Permiso/Falta actualizado', {
-          description: `Se actualizó correctamente. Descuento: ${formatCurrency(
-            savedAbsence.deductionAmount
-          )}`,
-        });
+        // Usar replacePatchAbsence o patchAbsence según el modo
+        if (useReplaceMode) {
+          savedAbsence = await absenceService.replacePatchAbsence(
+            absence.id,
+            updateData
+          );
+
+          toast.success('Permiso/Falta reemplazado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                {`Se reemplazó correctamente. Descuento: ${formatCurrency(
+                  savedAbsence.deductionAmount
+                )}`}
+              </p>
+            ),
+          });
+        } else {
+          savedAbsence = await absenceService.patchAbsence(
+            absence.id,
+            updateData
+          );
+
+          toast.success('Permiso/Falta actualizado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                {`Se actualizó correctamente. Descuento: ${formatCurrency(
+                  savedAbsence.deductionAmount
+                )}`}
+              </p>
+            ),
+          });
+        }
       } else {
         savedAbsence = await absenceService.createAbsence({
           employeeId,
@@ -206,9 +279,13 @@ export function AbsencePermissionForm({
         const typeLabel =
           values.type === AbsencePermissionType.ABSENCE ? 'Falta' : 'Permiso';
         toast.success(`${typeLabel} registrado`, {
-          description: `Se registró correctamente. Descuento: ${formatCurrency(
-            savedAbsence.deductionAmount
-          )}`,
+          description: (
+            <p className="text-slate-700 select-none">
+              {`Se registró correctamente. Descuento: ${formatCurrency(
+                savedAbsence.deductionAmount
+              )}`}
+            </p>
+          ),
         });
       }
 
@@ -226,10 +303,21 @@ export function AbsencePermissionForm({
         });
       }
     } catch (error) {
-      console.error('Error al registrar:', error);
-      toast.error('Error al guardar', {
-        description: 'Ocurrió un error al intentar guardar.',
-      });
+      console.error('Error al guardar:', error);
+      toast.error(
+        isEditing
+          ? useReplaceMode
+            ? 'Error al reemplazar'
+            : 'Error al actualizar'
+          : 'Error al guardar',
+        {
+          description: (
+            <p className="text-slate-700 select-none">
+              Ocurrió un error al intentar guardar.
+            </p>
+          ),
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -277,7 +365,7 @@ export function AbsencePermissionForm({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -302,35 +390,23 @@ export function AbsencePermissionForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    defaultMonth={getDefaultMonth()}
+                    locale={es}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     disabled={(date) => {
                       const today = new Date();
-
                       if (date > today) return true;
 
                       if (date < new Date('1900-01-01')) return true;
-
-                      const currentMonth = today.getMonth();
-                      const currentYear = today.getFullYear();
-
-                      const dateMonth = date.getMonth();
-                      const dateYear = date.getFullYear();
-
-                      const isSameYear = dateYear === currentYear;
-
-                      const isEarlyInMonth = today.getDate() <= 5;
-
-                      const isPreviousMonth =
-                        (isSameYear && dateMonth === currentMonth - 1) ||
-                        (currentMonth === 0 &&
-                          dateYear === currentYear - 1 &&
-                          dateMonth === 11);
-
-                      const isOlderThanPreviousMonth =
-                        dateYear < currentYear ||
-                        (isSameYear && dateMonth < currentMonth - 1);
-
-                      if (isOlderThanPreviousMonth) return true;
-                      if (isPreviousMonth && !isEarlyInMonth) return true;
 
                       return false;
                     }}
@@ -401,7 +477,7 @@ export function AbsencePermissionForm({
                   placeholder="Detalles adicionales..."
                   {...field}
                   disabled={loading}
-                  className='resize-none'
+                  className="resize-none"
                 />
               </FormControl>
               <FormMessage />
@@ -413,10 +489,14 @@ export function AbsencePermissionForm({
           <Button type="submit" disabled={loading} className="flex-1">
             {loading
               ? isEditing
-                ? 'Actualizando...'
+                ? useReplaceMode
+                  ? 'Reemplazando...'
+                  : 'Actualizando...'
                 : 'Registrando...'
               : isEditing
-              ? 'Actualizar'
+              ? useReplaceMode
+                ? 'Reemplazar'
+                : 'Actualizar'
               : 'Registrar'}
           </Button>
           {isEditing && onCancel && (

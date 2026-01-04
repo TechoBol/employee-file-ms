@@ -17,4 +17,8 @@ export class DepartmentService {
   async patchDepartment(id: string, departmentUpdateRequest: Partial<DepartmentUpdateRequest>): Promise<DepartmentResponse> {
     return httpClient.patch<DepartmentResponse>(`${this.BASE_URL}/${id}`, departmentUpdateRequest);
   }
+
+  async deleteDepartment(id: string): Promise<void> {
+    return httpClient.delete<void>(`${this.BASE_URL}/${id}`);
+  }
 }

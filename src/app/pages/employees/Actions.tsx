@@ -30,6 +30,10 @@ export function Actions({ employee }: { employee: EmployeeResponse }) {
     setDialogEditOpen(false);
   };
 
+  const handleViewHistory = () => {
+    navigate(`/employees/${employee.id}/history`);
+  }
+
   return (
     <>
       <ReusableDialog
@@ -41,7 +45,7 @@ export function Actions({ employee }: { employee: EmployeeResponse }) {
       >
         <EmployeeForm onSave={handleSave} employee={employee} />
       </ReusableDialog>
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">{DataTableColumnsTexts.openMenu}</span>
@@ -61,6 +65,9 @@ export function Actions({ employee }: { employee: EmployeeResponse }) {
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialogEditOpen(true)}>
             {DataTableColumnsTexts.editUser}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleViewHistory}>
+            Ver Historial
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

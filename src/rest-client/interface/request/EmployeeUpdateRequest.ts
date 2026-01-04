@@ -12,6 +12,8 @@ export interface EmployeeUpdateRequest {
   type: string;
   positionId: string;
   branchId: string;
+  disassociationDate: Date;
+  disassociationReason: string;
 }
 
 export interface EmergencyContactRequest {
@@ -19,4 +21,10 @@ export interface EmergencyContactRequest {
   relation: string;
   phone: string;
   address: string;
+}
+
+export interface EmployeeChangeCompanyRequest {
+  newCompanyId: string;
+  newCompanyName: string;
+  reason?: string;
 }

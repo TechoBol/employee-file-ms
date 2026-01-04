@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import {
   Form,
   FormField,
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import PdfUploader from '@/app/shared/components/PdfUploader';
+import { es } from 'date-fns/locale';
 
 const formSchema = z.object({
   direccion: z.string().min(1, 'La dirección es requerida'),
@@ -72,7 +73,7 @@ export function PersonalInfoForm() {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha de nacimiento</FormLabel>
-              <Popover>
+              <Popover modal>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -92,8 +93,19 @@ export function PersonalInfoForm() {
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={field.value ? new Date(field.value) : undefined}
+                    selected={field.value ? parseISO(field.value) : undefined}
                     captionLayout="dropdown"
+                    locale={es}
+                    formatters={{
+                      formatCaption: (date) => {
+                        const formatted = format(date, 'LLLL yyyy', {
+                          locale: es,
+                        });
+                        return (
+                          formatted.charAt(0).toUpperCase() + formatted.slice(1)
+                        );
+                      },
+                    }}
                     onSelect={(date) => {
                       field.onChange(date?.toISOString().split('T')[0]);
                     }}

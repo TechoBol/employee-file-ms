@@ -11,12 +11,28 @@ import {
   ChevronDown,
   ChevronUp,
   Edit2,
+  Trash2,
+  CheckCircle2,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AbsenceService } from '@/rest-client/services/AbsenceService';
 import type { AbsenceResponse } from '@/rest-client/interface/response/AbsenceResponse';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { AbsencePermissionForm } from './forms/AbsencePermissionForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { formatDate } from '@/lib/utils';
+import { getMonthRange } from '@/lib/date-utils';
 
 export const AbsencePermissionType = {
   PERMISSION: 'PERMISSION',
@@ -35,6 +51,7 @@ export type PermissionDuration =
 type AbsencePermissionSectionProps = {
   employeeId: string;
   employeeName?: string;
+  isDisassociated?: boolean;
 };
 
 const formatCurrency = (value: number) =>
@@ -44,27 +61,12 @@ const formatCurrency = (value: number) =>
     minimumFractionDigits: 2,
   }).format(value);
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+const isPermission = (description: string): boolean => {
+  return description.toLowerCase().includes('permiso');
 };
 
-const formatMonthYear = (date: Date) => {
-  return date.toLocaleDateString('es-BO', {
-    year: 'numeric',
-    month: 'long',
-  });
-};
-
-const getAbsenceTypeFromDescription = (
-  description: string
-): AbsencePermissionType => {
-  return description.toLowerCase().includes('falta')
-    ? AbsencePermissionType.ABSENCE
-    : AbsencePermissionType.PERMISSION;
+const isAbsence = (description: string): boolean => {
+  return description.toLowerCase().includes('falta');
 };
 
 const getDurationFromDescription = (
@@ -75,55 +77,15 @@ const getDurationFromDescription = (
     : PermissionDuration.FULL_DAY;
 };
 
-const canEditAbsence = (absenceDate: string): boolean => {
-  const absence = new Date(absenceDate);
-  const today = new Date();
-
-  const absenceMonth = absence.getMonth();
-  const absenceYear = absence.getFullYear();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  // Mismo mes
-  if (absenceMonth === currentMonth && absenceYear === currentYear) {
-    return true;
-  }
-
-  // Primeros 5 días del mes siguiente
-  const nextMonth = new Date(absenceYear, absenceMonth + 1, 1);
-  const fifthDayOfNextMonth = new Date(
-    absenceYear,
-    absenceMonth + 1,
-    5,
-    23,
-    59,
-    59
-  );
-
-  return today >= nextMonth && today <= fifthDayOfNextMonth;
-};
-
-const getMonthRange = (monthsAgo: number) => {
+// Función para determinar en qué mes está un absence
+const getMonthsAgoFromDate = (dateString: string): number => {
+  const absenceDate = new Date(dateString);
   const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-  const endDate = new Date(
-    now.getFullYear(),
-    now.getMonth() - monthsAgo + 1,
-    0,
-    23,
-    59,
-    59
-  );
-  return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
-    label: formatMonthYear(startDate),
-  };
-};
 
-const isWithinFirstFiveDays = (): boolean => {
-  const today = new Date();
-  return today.getDate() <= 5;
+  const yearDiff = now.getFullYear() - absenceDate.getFullYear();
+  const monthDiff = now.getMonth() - absenceDate.getMonth();
+
+  return yearDiff * 12 + monthDiff;
 };
 
 const absenceService = new AbsenceService();
@@ -131,7 +93,9 @@ const absenceService = new AbsenceService();
 export function AbsencePermissionSection({
   employeeId,
   employeeName,
+  isDisassociated,
 }: AbsencePermissionSectionProps) {
+  const applyCutoff = !isDisassociated;
   const [absenceEvents, setAbsenceEvents] = useState<AbsenceResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,11 +103,22 @@ export function AbsencePermissionSection({
   const [editingAbsence, setEditingAbsence] = useState<AbsenceResponse | null>(
     null
   );
+  const [useReplaceMode, setUseReplaceMode] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlyAbsences, setMonthlyAbsences] = useState<
     Map<number, AbsenceResponse[] | null>
   >(new Map());
   const [loadingMonths, setLoadingMonths] = useState<Set<number>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [absenceToDelete, setAbsenceToDelete] =
+    useState<AbsenceResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [processedWarningOpen, setProcessedWarningOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'edit' | 'delete';
+    absence: AbsenceResponse;
+    isCurrentMonth: boolean;
+  } | null>(null);
 
   useEffect(() => {
     fetchCurrentAbsences();
@@ -153,7 +128,7 @@ export function AbsencePermissionSection({
     try {
       setLoading(true);
       setError(null);
-      const deductions = await absenceService.getAbsencesByEmployee(employeeId);
+      const deductions = await absenceService.getAbsencesByEmployee(employeeId, undefined, undefined, !applyCutoff);
       const absenceDeductions = deductions.filter(
         (event) =>
           event.description &&
@@ -171,7 +146,40 @@ export function AbsencePermissionSection({
     }
   };
 
-  const handleAbsenceSaved = (savedAbsence: AbsenceResponse) => {
+  const reloadMonth = async (monthsAgo: number) => {
+    setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
+
+    try {
+      const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
+      const absences = await absenceService.getAbsencesByEmployee(
+        employeeId,
+        startDate,
+        endDate
+      );
+      const filteredAbsences = absences.filter(
+        (event) =>
+          event.description &&
+          (event.description.toLowerCase().includes('permiso') ||
+            event.description.toLowerCase().includes('falta'))
+      );
+      setMonthlyAbsences((prev) =>
+        new Map(prev).set(monthsAgo, filteredAbsences)
+      );
+    } catch (err) {
+      console.error(`Error reloading month ${monthsAgo}:`, err);
+      toast.error('Error al recargar', {
+        description: 'No se pudo actualizar los datos del mes',
+      });
+    } finally {
+      setLoadingMonths((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(monthsAgo);
+        return newSet;
+      });
+    }
+  };
+
+  const handleAbsenceSaved = async (savedAbsence: AbsenceResponse) => {
     if (editingAbsence) {
       // Actualizar existente
       setAbsenceEvents((prev) =>
@@ -180,34 +188,114 @@ export function AbsencePermissionSection({
       setEditingAbsence(null);
     } else {
       // Crear nuevo
-      const isAbsence = getAbsenceTypeFromDescription(
-        savedAbsence.description || ''
-      );
-      const typeLabel =
-        isAbsence === AbsencePermissionType.ABSENCE ? 'Falta' : 'Permiso';
-
       setAbsenceEvents([savedAbsence, ...absenceEvents]);
-
-      toast.success(`${typeLabel} registrado`, {
-        description: `Se registró correctamente. Descuento: ${formatCurrency(
-          savedAbsence.deductionAmount
-        )}`,
-      });
     }
 
     setDialogOpen(false);
-    fetchCurrentAbsences();
+    setUseReplaceMode(false);
+
+    // Recargar mes actual
+    await fetchCurrentAbsences();
+
+    // Determinar el mes del absence y recargar si no es mes actual
+    const monthsAgo = getMonthsAgoFromDate(savedAbsence.date);
+    if (monthsAgo > 0 && monthlyAbsences.has(monthsAgo)) {
+      await reloadMonth(monthsAgo);
+    }
   };
 
-  const handleEdit = (absence: AbsenceResponse) => {
+  const handleEdit = (
+    absence: AbsenceResponse,
+    isCurrentMonth: boolean = true
+  ) => {
+    // Si está procesado, mostrar advertencia primero
+    if (absence.processed) {
+      setPendingAction({ type: 'edit', absence, isCurrentMonth });
+      setProcessedWarningOpen(true);
+      return;
+    }
+
     setEditingAbsence(absence);
+    setUseReplaceMode(!isCurrentMonth);
     setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (absence: AbsenceResponse) => {
+    // Si está procesado, mostrar advertencia primero
+    if (absence.processed) {
+      setPendingAction({ type: 'delete', absence, isCurrentMonth: true });
+      setProcessedWarningOpen(true);
+      return;
+    }
+
+    setAbsenceToDelete(absence);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleProcessedWarningConfirm = () => {
+    if (!pendingAction) return;
+
+    if (pendingAction.type === 'edit') {
+      setEditingAbsence(pendingAction.absence);
+      setUseReplaceMode(!pendingAction.isCurrentMonth);
+      setDialogOpen(true);
+    } else if (pendingAction.type === 'delete') {
+      setAbsenceToDelete(pendingAction.absence);
+      setDeleteDialogOpen(true);
+    }
+
+    setProcessedWarningOpen(false);
+    setPendingAction(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!absenceToDelete) return;
+
+    try {
+      setDeleting(true);
+      await absenceService.deleteAbsence(absenceToDelete.id);
+
+      setAbsenceEvents((prev) =>
+        prev.filter((a) => a.id !== absenceToDelete.id)
+      );
+
+      toast.success('Permiso/Falta eliminado', {
+        description: (
+          <p className="text-slate-700 select-none">
+            El registro fue eliminado correctamente
+          </p>
+        ),
+      });
+
+      // Recargar mes actual
+      await fetchCurrentAbsences();
+
+      // Determinar el mes del absence eliminado y recargar si no es mes actual
+      const monthsAgo = getMonthsAgoFromDate(absenceToDelete.date);
+      if (monthsAgo > 0 && monthlyAbsences.has(monthsAgo)) {
+        await reloadMonth(monthsAgo);
+      }
+    } catch (error) {
+      console.error('Error al eliminar:', error);
+      toast.error('Error al eliminar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            No se pudo eliminar el registro
+          </p>
+        ),
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setAbsenceToDelete(null);
+    }
   };
 
   const handleDialogChange = (open: boolean) => {
     setDialogOpen(open);
     if (!open) {
       setEditingAbsence(null);
+      setUseReplaceMode(false);
     }
   };
 
@@ -225,7 +313,7 @@ export function AbsencePermissionSection({
         setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
 
         try {
-          const { startDate, endDate } = getMonthRange(monthsAgo);
+          const { startDate, endDate } = getMonthRange(monthsAgo, applyCutoff);
           const absences = await absenceService.getAbsencesByEmployee(
             employeeId,
             startDate,
@@ -255,13 +343,11 @@ export function AbsencePermissionSection({
   };
 
   const permissions = absenceEvents.filter(
-    (event) =>
-      event.description && event.description.toLowerCase().includes('permiso')
+    (event) => event.description && isPermission(event.description)
   );
 
   const absences = absenceEvents.filter(
-    (event) =>
-      event.description && event.description.toLowerCase().includes('falta')
+    (event) => event.description && isAbsence(event.description)
   );
 
   const totalDeductions = absenceEvents.reduce(
@@ -271,37 +357,52 @@ export function AbsencePermissionSection({
 
   const renderAbsenceCard = (
     event: AbsenceResponse,
-    showEdit: boolean = true
+    isCurrentMonth: boolean = true
   ) => {
-    const isAbsence = getAbsenceTypeFromDescription(event.description || '');
-    const isPermission = !isAbsence;
-    const duration = isPermission
+    const eventIsPermission =
+      event.description && isPermission(event.description);
+    const eventIsAbsence = event.description && isAbsence(event.description);
+    const duration = eventIsPermission
       ? getDurationFromDescription(event.description || '')
       : null;
-    const isEditable = showEdit && canEditAbsence(event.date);
 
     return (
       <div
         key={event.id}
-        className="flex items-center justify-between p-3 border rounded-lg"
+        className={`flex items-center justify-between p-3 border rounded-lg ${
+          event.processed ? 'bg-slate-50 border-green-200' : ''
+        }`}
       >
         <div className="flex items-center gap-3 flex-1">
-          {isAbsence ? (
+          {eventIsAbsence ? (
             <CalendarX className="h-5 w-5 text-red-600 flex-shrink-0" />
           ) : (
-            <Clock className="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <Clock className="h-5 w-5 text-orange-600 flex-shrink-0" />
           )}
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant={isAbsence ? 'destructive' : 'secondary'}>
-                {isAbsence ? 'Falta' : 'Permiso'}
-              </Badge>
+              {eventIsAbsence ? (
+                <Badge variant="destructive">Falta</Badge>
+              ) : (
+                <Badge className="bg-orange-500 hover:bg-orange-600 text-white">
+                  Permiso
+                </Badge>
+              )}
               {duration && (
                 <Badge variant="outline">
                   {duration === PermissionDuration.HALF_DAY
                     ? 'Medio día'
                     : '1 día'}
+                </Badge>
+              )}
+              {event.processed && (
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200"
+                >
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Procesado
                 </Badge>
               )}
             </div>
@@ -319,23 +420,33 @@ export function AbsencePermissionSection({
             <p className="text-sm font-semibold text-red-600">
               -{formatCurrency(event.deductionAmount)}
             </p>
+            {event.processed && (
+              <p className="text-xs text-green-600">Aplicado en planilla</p>
+            )}
           </div>
-          {isEditable && (
-            <Button size="sm" variant="ghost" onClick={() => handleEdit(event)}>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleEdit(event, isCurrentMonth)}
+              title={isCurrentMonth ? 'Editar' : 'Editar (reemplazar)'}
+            >
               <Edit2 className="h-4 w-4" />
             </Button>
-          )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleDeleteClick(event)}
+              title="Eliminar"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
   };
-
-  // Determinar cuántos meses atrás mostrar
-  const startMonthsAgo = isWithinFirstFiveDays() ? 0 : 1;
-  const monthsToShow = Array.from(
-    { length: 12 },
-    (_, i) => i + startMonthsAgo
-  ).filter((m) => m > 0);
 
   if (loading) {
     return (
@@ -352,11 +463,17 @@ export function AbsencePermissionSection({
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
         title={
-          editingAbsence ? 'Editar Permiso/Falta' : 'Registrar Permiso o Falta'
+          editingAbsence
+            ? useReplaceMode
+              ? 'Editar Permiso/Falta (Reemplazar)'
+              : 'Editar Permiso/Falta'
+            : 'Registrar Permiso o Falta'
         }
         description={
           editingAbsence
-            ? 'Modifica los datos del permiso o falta'
+            ? useReplaceMode
+              ? 'Se eliminará y recreará el registro con los nuevos datos'
+              : 'Modifica los datos del permiso o falta'
             : 'Registra un nuevo permiso o falta para el empleado'
         }
         open={dialogOpen}
@@ -365,10 +482,80 @@ export function AbsencePermissionSection({
         <AbsencePermissionForm
           employeeId={employeeId}
           absence={editingAbsence || undefined}
+          useReplaceMode={useReplaceMode}
+          isDisassociated={isDisassociated}
           onSave={handleAbsenceSaved}
           onCancel={() => handleDialogChange(false)}
         />
       </ReusableDialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El registro será eliminado
+              permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive/85 text-destructive-foreground hover:bg-destructive text-slate-100"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={processedWarningOpen}
+        onOpenChange={setProcessedWarningOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Registro ya procesado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Este permiso/falta ya fue procesado en una planilla anterior.
+              </p>
+              <p className="font-medium text-amber-600">
+                ⚠️ Si realizas cambios, deberás recalcular la planilla de ese
+                mes para ver los cambios reflejados.
+              </p>
+              <p className="text-sm">
+                ¿Deseas continuar con{' '}
+                {pendingAction?.type === 'edit'
+                  ? 'la edición'
+                  : 'la eliminación'}
+                ?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setProcessedWarningOpen(false);
+                setPendingAction(null);
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleProcessedWarningConfirm}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="flex justify-between">
         <div>
@@ -387,7 +574,7 @@ export function AbsencePermissionSection({
         <Card className="rounded-2xl shadow-md">
           <CardContent className="p-6 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-600" />
+              <Clock className="h-4 w-4 text-orange-600" />
               <span className="text-sm text-muted-foreground">Permisos</span>
             </div>
             <span className="text-2xl font-semibold">{permissions.length}</span>
@@ -445,26 +632,42 @@ export function AbsencePermissionSection({
       <div className="flex flex-col gap-4">
         <span className="text-lg font-semibold">Meses anteriores</span>
 
-        {monthsToShow.map((monthsAgo) => {
-          const { label } = getMonthRange(monthsAgo);
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
+          const { label } = getMonthRange(monthsAgo, applyCutoff);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);
           const absences = monthlyAbsences.get(monthsAgo);
 
           return (
             <div key={monthsAgo} className="border rounded-xl">
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-4 h-auto"
-                onClick={() => toggleMonth(monthsAgo)}
-              >
-                <span className="font-medium">{label}</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
+              <div className="flex items-center justify-between p-4">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-between h-auto p-0"
+                  onClick={() => toggleMonth(monthsAgo)}
+                >
+                  <span className="font-medium">{label}</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                {isExpanded && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => reloadMonth(monthsAgo)}
+                    disabled={isLoading}
+                    className="ml-2"
+                    title="Recargar mes"
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                    />
+                  </Button>
                 )}
-              </Button>
+              </div>
 
               {isExpanded && (
                 <div className="p-4 pt-0">

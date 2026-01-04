@@ -4,7 +4,7 @@ import type { ApiError, RequestConfig } from './types/api.types';
 class HttpClient {
   private instance: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:8080/api') {
+  constructor(baseURL: string = import.meta.env.VITE_API_URL) {
     this.instance = axios.create({
       baseURL,
       timeout: 10000,
@@ -24,10 +24,19 @@ class HttpClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        const companyId = localStorage.getItem('company_id');
+        const configStore = sessionStorage.getItem('config-store');
+        if (configStore) {
+          try {
+            const parsed = JSON.parse(configStore);
+            const companyId = parsed.state?.companyId;
 
-        if (companyId) {
-          config.headers['X-Company-Id'] = companyId;
+            if (companyId) {
+              config.headers['X-Company-Id'] = companyId;
+            }
+            config.headers['X-USER-NAME'] = parsed.state?.userName ?? 'UNKNOWN';
+          } catch (error) {
+            console.error('Error parsing config store:', error);
+          }
         }
 
         return config;
@@ -54,7 +63,6 @@ class HttpClient {
 
         if (error.response?.status === 401) {
           localStorage.removeItem('auth_token');
-          localStorage.removeItem('company_id');
           window.location.href = '/login';
         }
 
