@@ -53,15 +53,17 @@ export function useDataTable<T>({
   };
 
   const fetchData = useCallback(async () => {
+    if (endpoint.includes('/employees') && !companyId) {
+      setLoading(true);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       if (endpoint.includes('/employees')) {
-        if (!companyId) {
-          throw new Error('Company ID is required to fetch employees');
-        }
-
         const result = await employeeService.getEmployees(
           pagination.pageIndex,
           pagination.pageSize,
