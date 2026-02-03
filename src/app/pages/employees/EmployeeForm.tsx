@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import {
   Popover,
   PopoverContent,
@@ -543,7 +543,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                         disabled={loading}
                       >
                         {field.value
-                          ? format(new Date(field.value), 'dd/MM/yyyy')
+                          ? format(parseISO(field.value.toString()), 'dd/MM/yyyy')
                           : 'Selecciona una fecha'}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
