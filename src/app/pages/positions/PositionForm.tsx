@@ -34,8 +34,8 @@ const formSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   description: z
     .string()
-    .min(1, 'La descripción es obligatoria')
-    .max(250, 'La descripción no puede exceder los 250 caracteres'),
+    .max(250, 'La descripción no puede exceder los 250 caracteres')
+    .optional(),
   departmentId: z.string().nonempty('Debes seleccionar un departamento'),
 });
 

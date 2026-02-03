@@ -32,7 +32,13 @@ import { CompanyService } from '@/rest-client/services/CompanyService';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils';
 
-export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
+export function EmployeeInfo({ 
+  employee, 
+  onEmployeeUpdate 
+}: { 
+  employee: EmployeeResponse;
+  onEmployeeUpdate: (updated: EmployeeResponse) => void;
+}) {
   const { firstName, lastName, positionName, departmentName, hireDate, email } =
     employee;
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -63,8 +69,9 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
     }
   };
 
-  const onSave = async (newUser: EmployeeResponse) => {
-    console.log('Edit User saved:', newUser);
+  const onSave = async (employee: EmployeeResponse) => {
+    console.log('Edit Employee saved:', employee);
+    onEmployeeUpdate(employee);
     setDialogOpen(false);
   };
 

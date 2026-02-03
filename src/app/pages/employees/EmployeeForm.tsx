@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -76,7 +76,7 @@ type EmployeeFormValues = z.infer<typeof formSchema>;
 function toLocalDate(value: Date | string | undefined): Date | undefined {
   if (!value) return undefined;
   if (value instanceof Date) return value;
-  return parseISO(value); // parsea "YYYY-MM-DD" sin desfase de zona
+  return parseISO(value);
 }
 
 interface UserFormProps {
@@ -97,6 +97,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
     string | null
   >(null);
   const [loading, setLoading] = useState(false);
+  const isInitialized = useRef(false);
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(formSchema),
@@ -129,12 +130,6 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
     positionService
       .getPositionsByDepartment(selectedDepartmentId)
       .then((positions) => {
-        console.log(
-          'Fetched positions:',
-          positions,
-          'departmentId:',
-          selectedDepartmentId
-        );
         setPositions(positions);
       });
   }, [selectedDepartmentId, form]);
@@ -173,11 +168,13 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
 
       const selectedDept = departments.find((d) => d.id === departmentId);
       setSelectedDepartmentId(selectedDept?.id || null);
+
+      isInitialized.current = true;
     }
   }, [employee, departments, form]);
 
   useEffect(() => {
-    if (employee && positions.length > 0) {
+    if (employee && positions.length > 0 && !isInitialized.current) {
       form.setValue('positionId', employee.positionId || '');
       form.setValue('departmentId', employee.departmentId || '');
     }
@@ -609,6 +606,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
               onClick={() => {
                 form.reset();
                 setSelectedDepartmentId(null);
+                isInitialized.current = false;
               }}
               disabled={loading}
               className="flex-1 sm:flex-none"

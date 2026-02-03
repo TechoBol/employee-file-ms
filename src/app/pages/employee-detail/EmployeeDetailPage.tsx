@@ -153,7 +153,7 @@ export function EmployeeDetailPage() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4">
-      <EmployeeInfo employee={employee} />
+      <EmployeeInfo employee={employee} onEmployeeUpdate={handleEmployeeUpdate} />
       <Tabs defaultValue="personal-info" className="w-full">
         <TabsList className="w-full mb-2 flex justify-between">
           {tabItems.map(({ value, label, disabled }) => (

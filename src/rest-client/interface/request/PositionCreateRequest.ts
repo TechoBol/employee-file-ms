@@ -1,5 +1,5 @@
 export interface PositionCreateRequest {
   name: string;
-  description: string;
+  description?: string;
   departmentId: string;
 }
