@@ -91,7 +91,7 @@ export default function EmployeesPage() {
             filters={filters}
             onChange={setFilters}
             disabled={loading}
-            debounceMs={1200}
+            debounceMs={1100}
             showDebounceIndicator={true}
           />
 
