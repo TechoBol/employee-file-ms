@@ -73,6 +73,12 @@ const formSchema = z.object({
 
 type EmployeeFormValues = z.infer<typeof formSchema>;
 
+function toLocalDate(value: Date | string | undefined): Date | undefined {
+  if (!value) return undefined;
+  if (value instanceof Date) return value;
+  return parseISO(value); // parsea "YYYY-MM-DD" sin desfase de zona
+}
+
 interface UserFormProps {
   onSave?: (newEmployee: EmployeeResponse) => void;
   employee?: EmployeeResponse;
@@ -543,7 +549,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                         disabled={loading}
                       >
                         {field.value
-                          ? format(parseISO(field.value.toString()), 'dd/MM/yyyy')
+                          ? format(toLocalDate(field.value)!, 'dd/MM/yyyy')
                           : 'Selecciona una fecha'}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
