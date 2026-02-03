@@ -53,7 +53,7 @@ export function EmployeeFilters({
   onChange,
   disabled = false,
   className = '',
-  debounceMs = 300,
+  debounceMs = 800,
   showDebounceIndicator = true,
 }: EmployeeFiltersProps) {
   const [localSearch, setLocalSearch] = useState(filters.search || '');

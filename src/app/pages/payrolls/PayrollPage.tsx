@@ -312,7 +312,7 @@ export default function PayrollsPage() {
                   filters={currentFilters}
                   onChange={handleCurrentFiltersChange}
                   disabled={currentLoading}
-                  debounceMs={500}
+                  debounceMs={800}
                   showDebounceIndicator={true}
                   className="flex-1"
                 />
@@ -571,7 +571,7 @@ export default function PayrollsPage() {
                   filters={historicalFilters}
                   onChange={handleHistoricalFiltersChange}
                   disabled={historicalLoading || reprocessing}
-                  debounceMs={500}
+                  debounceMs={800}
                   showDebounceIndicator={true}
                   className="w-full sm:flex-1"
                 />
