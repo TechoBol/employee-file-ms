@@ -21,6 +21,7 @@ export interface EmployeeResponse {
   disassociatedAt: string | null;
   disassociationDate: string | null;
   disassociationReason: string | null;
+  contractCompany: string | null;
 }
 
 export interface EmergencyContactResponse {

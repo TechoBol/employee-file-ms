@@ -22,8 +22,19 @@ export function EmployeeDetailPage() {
   const [employee, setEmployee] = useState<EmployeeResponse | null>(null);
 
   const handleEmployeeUpdate = (updatedEmployee: EmployeeResponse) => {
-    setEmployee(updatedEmployee);
+    console.info('Employee updated:', updatedEmployee);
+    handleReloadEmployee();
   };
+
+  const handleReloadEmployee = () => {
+    if (employeeId) {
+      employeeService.getEmployeeById(employeeId).then((data) => {
+        setEmployee(data);
+      }).catch((error) => {
+        console.error('Error reloading employee details:', error);
+      });
+    }
+  }
 
   const tabItems = [
     {

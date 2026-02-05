@@ -34,7 +34,7 @@ import { formatDate } from '@/lib/utils';
 
 export function EmployeeInfo({ 
   employee, 
-  onEmployeeUpdate 
+  onEmployeeUpdate
 }: { 
   employee: EmployeeResponse;
   onEmployeeUpdate: (updated: EmployeeResponse) => void;
@@ -198,6 +198,13 @@ export function EmployeeInfo({
                 <span>|</span>
                 {departmentName?.charAt(0).toUpperCase() +
                   departmentName?.slice(1) || 'No definido'}
+                {employee.branchName && (
+                  <>
+                    <span>|</span>
+                    {employee.branchName.charAt(0).toUpperCase() +
+                      employee.branchName.slice(1)}
+                  </>
+                )}
               </span>
               <span className="flex items-center gap-2">
                 <StatusBadge status={employee.status} />
@@ -216,10 +223,18 @@ export function EmployeeInfo({
                 <Mail />
                 <span>{email}</span>
               </span>
-              <span className="flex items-center gap-2">
-                <Phone />
-                <span>{employee.phone || EmployeeDetailsTexts.noPhone}</span>
-              </span>
+              <section className="flex items-center gap-8">
+                <span className="flex items-center gap-2">
+                  <Phone />
+                  <span>{employee.phone || EmployeeDetailsTexts.noPhone}</span>
+                </span>
+                {employee.contractCompany && (
+                  <span className="flex items-center gap-2">
+                    <Building2 />
+                    <span>{employee.contractCompany}</span>
+                  </span>
+                )}
+              </section>
               <section className="flex items-center gap-2">
                 <Button variant="outline" onClick={() => setDialogOpen(true)}>
                   <UserRound />

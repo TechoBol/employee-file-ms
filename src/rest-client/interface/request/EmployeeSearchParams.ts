@@ -8,4 +8,5 @@ export interface EmployeeSearchParams {
   isDisassociated?: boolean;
   branchId?: string;
   positionId?: string;
+  contractCompany?: string;
 }

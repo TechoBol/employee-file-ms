@@ -69,6 +69,10 @@ const formSchema = z.object({
   branchId: z.string().nonempty('Sucursal requerida'),
   departmentId: z.string().nonempty('Departamento requerido'),
   positionId: z.string().nonempty('Puesto requerido'),
+  contractCompany: z
+    .string()
+    .max(150, 'La empresa (contrato) no puede exceder los 150 caracteres')
+    .optional(),
 });
 
 type EmployeeFormValues = z.infer<typeof formSchema>;
@@ -113,6 +117,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
       branchId: '',
       positionId: '',
       type: 'FULL_TIME',
+      contractCompany: '',
     },
   });
 
@@ -149,6 +154,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         departmentId,
         positionId,
         type,
+        contractCompany,
       } = employee;
 
       form.reset({
@@ -163,6 +169,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         branchId: branchId || '',
         departmentId: departmentId || '',
         positionId,
+        contractCompany: contractCompany || '',
         type: (type as EmployeeFormValues['type']) || 'FULL_TIME',
       });
 
@@ -215,9 +222,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
     } catch (error) {
       console.error('Error al guardar el usuario:', error);
       toast('Error', {
-        description: employee
-          ? 'No se pudo actualizar el usuario'
-          : 'No se pudo crear el usuario',
+        description: <p className="text-slate-700 select-none">{employee ? 'No se pudo actualizar el empleado.' : 'No se pudo crear el empleado.'}</p>,
       });
     } finally {
       setLoading(false);
@@ -395,6 +400,24 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                 <FormControl>
                   <Input
                     placeholder="Av. Principal #123"
+                    {...field}
+                    disabled={loading}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="contractCompany"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Empresa (Contrato)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Nombre de la empresa (contrato) - OPCIONAL"
                     {...field}
                     disabled={loading}
                   />

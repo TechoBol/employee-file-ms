@@ -12,7 +12,7 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
       <span className="pl-4">{DataTableColumnsTexts.employee}</span>
     ),
     cell: ({ row }) => {
-      const { firstName, lastName, hireDate, branchName } = row.original;
+      const { firstName, lastName, hireDate, branchName, contractCompany } = row.original;
       const formattedDate = formatDate(hireDate);
       return (
         <section className="pl-4">
@@ -29,6 +29,16 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
             <span className="text-sm font-medium">
               {branchName ?? 'Sucursal No definida'}
             </span>
+            {contractCompany && (
+              <>
+                <span className="text-sm"> | </span>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-600 text-zinc-100`}
+                >
+                  {contractCompany}
+                </span>
+              </>
+            )}
           </span>
         </section>
       );
@@ -106,6 +116,19 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
       );
     },
   },
+  // {
+  //   accessorKey: 'contractCompany',
+  //   header: 'Contrato',
+  //   cell: ({ row }) => {
+  //     const { contractCompany } = row.original;
+
+  //     return (
+  //       <span className="text-sm text-muted-foreground">
+  //         {contractCompany ?? 'No definido'}
+  //       </span>
+  //     );
+  //   },
+  // },
   {
     id: 'actions',
     header: DataTableColumnsTexts.actions,

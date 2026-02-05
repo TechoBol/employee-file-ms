@@ -25,7 +25,7 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
     id: 'employee',
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
-      const { firstName, lastName, ci, branchName, status } =
+      const { firstName, lastName, ci, branchName, status, contractCompany } =
         row.original.employee;
       const position = row.original.employee.positionName || 'Sin cargo';
       const isActive = status === 'ACTIVE';
@@ -52,6 +52,16 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
               {` | `}
               {position}
             </span>
+            {contractCompany && (
+              <>
+                <span className="text-sm"> | </span>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-600 text-zinc-100`}
+                >
+                  {contractCompany}
+                </span>
+              </>
+            )}
           </span>
         </section>
       );
@@ -237,7 +247,7 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
     id: 'employee',
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
-      const { firstName, lastName, ci, branchName, status } =
+      const { firstName, lastName, ci, branchName, status, contractCompany } =
         row.original.employee;
       const position = row.original.employee.positionName || 'Sin cargo';
       const isActive = status === 'ACTIVE';
@@ -264,6 +274,16 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
               {` | `}
               {position}
             </span>
+            {contractCompany && (
+              <>
+                <span className="text-sm"> | </span>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-400 text-zinc-100`}
+                >
+                  {contractCompany}
+                </span>
+              </>
+            )}
           </span>
         </section>
       );
