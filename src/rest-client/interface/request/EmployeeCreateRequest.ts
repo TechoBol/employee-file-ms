@@ -10,5 +10,5 @@ export interface EmployeeCreateRequest {
   type: string;
   positionId: string;
   branchId: string;
-  contractCompany: string;
+  contractCompany?: string;
 }
