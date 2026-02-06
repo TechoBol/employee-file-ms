@@ -79,11 +79,21 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
     accessorKey: 'positionName',
     header: DataTableColumnsTexts.position,
     cell: ({ row }) => {
-      const position =
-        (row.getValue('positionName') as string) ?? 'No definido';
+      const { positionName, contractPosition } = row.original;
+      const position = positionName ?? 'No definido';
+      
       return (
-        <span className="text-muted-foreground">
-          {position?.charAt(0).toUpperCase() + position?.slice(1)}
+        <span className="flex items-center gap-2">
+          <span className="text-muted-foreground">
+            {position?.charAt(0).toUpperCase() + position?.slice(1)}
+          </span>
+          {contractPosition && (
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-600 text-zinc-100"
+            >
+              {contractPosition}
+            </span>
+          )}
         </span>
       );
     },

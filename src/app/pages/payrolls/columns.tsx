@@ -25,7 +25,7 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
     id: 'employee',
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
-      const { firstName, lastName, ci, branchName, status, contractCompany } =
+      const { firstName, lastName, ci, branchName, status, contractCompany, contractPosition } =
         row.original.employee;
       const position = row.original.employee.positionName || 'Sin cargo';
       const isActive = status === 'ACTIVE';
@@ -45,18 +45,29 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
               {isActive ? 'Activo' : 'Inactivo'}
             </span>
           </div>
-          <span className="text-sm text-muted-foreground block">CI: {ci}</span>
-          <span>
-            <span className="text-sm font-medium">{branchName}</span>
-            <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground block">
+            CI: {ci}
+            <span className="text-sm font-medium text-foreground">
               {` | `}
+              {branchName}
+            </span>
+          </span>
+          <span className="flex items-center gap-1 flex-wrap">
+            <span className="text-xs font-medium text-foreground">
               {position}
             </span>
+            {contractPosition && (
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-600 text-zinc-100"
+              >
+                {contractPosition}
+              </span>
+            )}
             {contractCompany && (
               <>
                 <span className="text-sm"> | </span>
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-600 text-zinc-100`}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-600 text-zinc-100"
                 >
                   {contractCompany}
                 </span>

@@ -73,6 +73,10 @@ const formSchema = z.object({
     .string()
     .max(150, 'La empresa (contrato) no puede exceder los 150 caracteres')
     .optional(),
+  contractPosition: z
+    .string()
+    .max(150, 'El puesto (contrato) no puede exceder los 150 caracteres')
+    .optional(),
 });
 
 type EmployeeFormValues = z.infer<typeof formSchema>;
@@ -118,6 +122,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
       positionId: '',
       type: 'FULL_TIME',
       contractCompany: '',
+      contractPosition: '',
     },
   });
 
@@ -155,6 +160,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         positionId,
         type,
         contractCompany,
+        contractPosition,
       } = employee;
 
       form.reset({
@@ -170,6 +176,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         departmentId: departmentId || '',
         positionId,
         contractCompany: contractCompany || '',
+        contractPosition: contractPosition || '',
         type: (type as EmployeeFormValues['type']) || 'FULL_TIME',
       });
 
@@ -409,23 +416,43 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="contractCompany"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Empresa (Contrato)</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Nombre de la empresa (contrato) - OPCIONAL"
-                    {...field}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="contractCompany"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Empresa (Contrato)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Nombre de la empresa (contrato) - OPCIONAL"
+                      {...field}
+                      disabled={loading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contractPosition"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Puesto (Contrato)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Nombre del puesto (contrato) - OPCIONAL"
+                      {...field}
+                      disabled={loading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <div className="space-y-4">

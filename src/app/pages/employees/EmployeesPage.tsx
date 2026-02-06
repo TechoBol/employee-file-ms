@@ -40,6 +40,7 @@ export default function EmployeesPage() {
     } else {
       setData([newEmployee, ...data]);
     }
+    refetch();
   };
 
   if (error) {
